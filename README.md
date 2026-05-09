@@ -39,4 +39,4 @@ A sample React frontend is available in `frontend/`.
    - `npm install`
    - `npm run dev`
 
-The frontend uses the Spring Boot backend at `http://localhost:8080/api/path` and will display the computed path on Google Maps.
+The frontend uses the Spring Boot backend at `http://localhost:8080/api/path` and will display the computed path on OpenStreetMap.
