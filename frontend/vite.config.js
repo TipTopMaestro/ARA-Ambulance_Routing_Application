@@ -1,14 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-oxc'; // Optimized for Vite 8
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
-  
+  plugins: [vue()],
   server: {
-    port: 5173,
-  },
-
-  esbuild: {
-    jsx: 'automatic', 
-  },
-});
+    port: 5173
+  }
+})

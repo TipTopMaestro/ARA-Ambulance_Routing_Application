@@ -9,14 +9,16 @@ public class PathResponse {
     private final boolean negativeCycleDetected;
     private final String message;
     private final List<RouteStep> steps;
+    private final List<RelaxationStep> relaxationSteps;
 
-    public PathResponse(List<String> path, List<Coordinate> coordinates, double estimatedTime, boolean negativeCycleDetected, String message, List<RouteStep> steps) {
+    public PathResponse(List<String> path, List<Coordinate> coordinates, double estimatedTime, boolean negativeCycleDetected, String message, List<RouteStep> steps, List<RelaxationStep> relaxationSteps) {
         this.path = path;
         this.coordinates = coordinates;
         this.estimatedTime = estimatedTime;
         this.negativeCycleDetected = negativeCycleDetected;
         this.message = message;
         this.steps = steps;
+        this.relaxationSteps = relaxationSteps;
     }
 
     public List<String> getPath() {
@@ -41,5 +43,9 @@ public class PathResponse {
 
     public List<RouteStep> getSteps() {
         return steps;
+    }
+
+    public List<RelaxationStep> getRelaxationSteps() {
+        return relaxationSteps;
     }
 }

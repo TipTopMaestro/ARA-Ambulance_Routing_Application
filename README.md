@@ -1,42 +1,79 @@
-# ARA Ambulance Routing Application a Bellman-Ford Algorithm path finding driven application
+# ARA: Ambulance Routing Application (Reworked)
 
-Simple Spring Boot backend demonstrating a Bellman-Ford shortest-path API.
+ARA is a state-of-the-art emergency response management system designed to optimize ambulance dispatch and routing for Panabo City. It leverages the **Bellman-Ford Algorithm** to calculate shortest paths while accounting for dynamic factors like traffic anomalies (simulated via negative edges).
 
-## Run
+## 🚀 Key Features
 
-1. Build: `mvn clean package`
-2. Run: `mvn spring-boot:run`
+### 📡 Dispatcher Dashboard
+- **Incident Management:** Rapidly input patient details and emergency types.
+- **Dynamic Hospital Selection:** Interactive map-based or dropdown selection of hospitals (Starting Points).
+- **Unit Assignment Modal:** Real-time availability tracking of ambulances stationed at hospitals.
+- **Route Optimization:** calculates ETAs and shortest routes using a robust Java implementation of the Bellman-Ford algorithm.
+- **Fleet Monitoring:** A quick-look panel showing the status of all units (Available, Reserved, Busy).
+- **Mission Logs:** Historical tracking of all dispatched missions with timestamps and route data.
 
-## API
+### 🚒 Driver Dashboard
+- **Instant Mission Receipt:** Real-time reception of patient information, route maps, and ETAs.
+- **Navigation Map:** Dedicated map highlighting the shortest route from the hospital to the patient.
+- **Status Progression:** One-touch status updates: *En Route* ➔ *Transport* ➔ *Completed*.
+- **Auto-Reset:** Upon completion, the dashboard resets for the next incident, and the ambulance is automatically marked as *Available* for dispatchers.
 
-POST `/api/path`
+## 🛠 Tech Stack
+- **Backend:** Java 17, Spring Boot, Spring Data JPA, Hibernate.
+- **Frontend:** React (Vite), React Router, Leaflet (OpenStreetMap), React Context API.
+- **Database:** MySQL (External persistence).
+- **Algorithm:** Bellman-Ford (supports negative weights and cycle detection).
 
-Request body:
+## 📋 Prerequisites
+- **Java:** JDK 17 or higher.
+- **Node.js:** v18 or higher.
+- **Database:** MySQL (e.g., XAMPP, WAMP, or standalone MySQL Server).
+- **Build Tool:** Maven.
 
-```json
-{
-  "source": { "id": "A", "latitude": 0.0, "longitude": 0.0 },
-  "target": { "id": "D", "latitude": 0.0, "longitude": 0.0 },
-  "edges": [
-    { "source": "A", "target": "B", "weight": 2.0 },
-    { "source": "B", "target": "C", "weight": 3.0 },
-    { "source": "A", "target": "C", "weight": 5.0 },
-    { "source": "C", "target": "D", "weight": 1.0 }
-  ]
-}
-```
+## ⚙️ Setup & Installation
 
-Response contains the shortest path, distance, and negative cycle detection.
+### 1. Database Setup
+1. Start your MySQL server (e.g., via XAMPP Control Panel).
+2. The application will automatically create the `ara_db` database on first run (as configured in `application.properties`).
+   - Default connection: `localhost:3306`, User: `root`, Password: (none).
 
-## Frontend
+### 2. Backend Installation
+1. Navigate to the root directory.
+2. Build the project:
+   ```bash
+   mvn clean install
+   ```
+3. Run the Spring Boot application:
+   ```bash
+   mvn spring-boot:run
+   ```
+   *Note: On first start, the system seeds initial users (`dispatcher1`, `driver1`, `driver2`) and ambulances.*
 
-A sample React frontend is available in `frontend/`.
+### 3. Frontend Installation
+1. Navigate to the `frontend/` directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies (requires `--legacy-peer-deps` due to Vite/Vite-Plugin-React versioning):
+   ```bash
+   npm install --legacy-peer-deps
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-1. Copy `frontend/.env.example` to `frontend/.env`.
-2. Add your Google Maps API key to `VITE_GOOGLE_MAPS_API_KEY`.
-3. Run:
-   - `cd frontend`
-   - `npm install`
-   - `npm run dev`
+## 🔐 Credentials (Default)
+| Role | Username | Password |
+| :--- | :--- | :--- |
+| **Dispatcher** | `
+` | `password` |
+| **Driver** | `driver1` | `password` |
 
-The frontend uses the Spring Boot backend at `http://localhost:8080/api/path` and will display the computed path on OpenStreetMap.
+## 🧠 Algorithm: Bellman-Ford
+The routing engine uses the Bellman-Ford algorithm to ensure reliability in complex graph scenarios. 
+- **Negative Edges:** The system randomly injects negative weights into the map edges to simulate special conditions (e.g., shortcuts or high-priority traffic corridors).
+- **Cycle Detection:** If a negative cycle is detected, the system warns the dispatcher that traffic loops may lead to unstable routing.
+
+## 🗺 Data Source
+Map data is derived from **OpenStreetMap (OSM)** via the Overpass API, covering significant nodes, intersections, and hospital locations in Panabo City.

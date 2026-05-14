@@ -38,6 +38,7 @@ public class BellmanFordService {
 
         Map<String, Double> distance = new HashMap<>();
         Map<String, String> predecessor = new HashMap<>();
+        List<com.example.bellmanford.model.RelaxationStep> relaxationSteps = new ArrayList<>();
 
         for (String vertex : vertices) {
             distance.put(vertex, Double.POSITIVE_INFINITY);
@@ -52,11 +53,21 @@ public class BellmanFordService {
             for (GraphEdge edge : edges) {
                 double sourceDistance = distance.getOrDefault(edge.getSource(), Double.POSITIVE_INFINITY);
                 if (sourceDistance != Double.POSITIVE_INFINITY) {
-                    double newDistance = sourceDistance + edge.getWeight(); // using calculated weight
-                    if (newDistance < distance.getOrDefault(edge.getTarget(), Double.POSITIVE_INFINITY)) {
+                    double newDistance = sourceDistance + edge.getWeight();
+                    boolean shouldRelax = newDistance < distance.getOrDefault(edge.getTarget(), Double.POSITIVE_INFINITY);
+                    
+                    if (shouldRelax) {
                         distance.put(edge.getTarget(), newDistance);
                         predecessor.put(edge.getTarget(), edge.getSource());
                         relaxedAny = true;
+                    }
+                    
+                    // Only record significant relaxations to avoid bloat, 
+                    // or record all if we want full visualization. Let's record all relaxations.
+                    if (shouldRelax) {
+                        relaxationSteps.add(new com.example.bellmanford.model.RelaxationStep(
+                            i, edge.getSource(), edge.getTarget(), edge.getWeight(), newDistance, shouldRelax, new HashMap<>(distance)
+                        ));
                     }
                 }
             }
@@ -98,7 +109,7 @@ public class BellmanFordService {
         }
 
         double estimatedTime = path.isEmpty() ? Double.POSITIVE_INFINITY : distance.getOrDefault(targetId, Double.POSITIVE_INFINITY);
-        return new PathResponse(path, coordinates, estimatedTime, negativeCycleDetected, message, steps);
+        return new PathResponse(path, coordinates, estimatedTime, negativeCycleDetected, message, steps, relaxationSteps);
     }
 
     private List<String> reconstructPath(Map<String, String> predecessor, String sourceId, String targetId) {

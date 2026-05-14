@@ -25,6 +25,22 @@ public class MockDatabaseService {
     private final List<GraphEdge> edges = new ArrayList<>();
     
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Random random = new Random();
+
+    private final com.example.bellmanford.repository.UserRepository userRepository;
+    private final com.example.bellmanford.repository.AmbulanceRepository ambulanceRepository;
+    private final com.example.bellmanford.repository.HospitalRepository hospitalRepository;
+    private final com.example.bellmanford.repository.LocationRepository locationRepository;
+
+    public MockDatabaseService(com.example.bellmanford.repository.UserRepository userRepository, 
+                               com.example.bellmanford.repository.AmbulanceRepository ambulanceRepository,
+                               com.example.bellmanford.repository.HospitalRepository hospitalRepository,
+                               com.example.bellmanford.repository.LocationRepository locationRepository) {
+        this.userRepository = userRepository;
+        this.ambulanceRepository = ambulanceRepository;
+        this.hospitalRepository = hospitalRepository;
+        this.locationRepository = locationRepository;
+    }
 
     @PostConstruct
     public void init() {
@@ -113,9 +129,15 @@ public class MockDatabaseService {
                                 String targetId = nodeId;
                                 
                                 double baseTravelTime = currentDistance * 2.0; // 30km/h
-                                edges.add(new GraphEdge(sourceId, targetId, baseTravelTime, 1.0));
+                                
+                                double finalWeight = baseTravelTime;
+                                if (random.nextDouble() < 0.05) {
+                                    finalWeight = - (random.nextDouble() * 5.0 + 1.0); // -1.0 to -6.0
+                                }
+
+                                edges.add(new GraphEdge(sourceId, targetId, finalWeight, 1.0));
                                 if (!oneway) {
-                                    edges.add(new GraphEdge(targetId, sourceId, baseTravelTime, 1.0));
+                                    edges.add(new GraphEdge(targetId, sourceId, finalWeight, 1.0));
                                 }
                                 
                                 // Reset for next segment
@@ -138,11 +160,59 @@ public class MockDatabaseService {
             addAlias("AMB_3", "928071323", "Ambulance Station Charlie");
             addAlias("AMB_4", "1298161645", "Downtown Ambulance Stand");
 
+            seedDatabase();
             System.out.println("Loaded " + nodes.size() + " nodes and " + edges.size() + " edges from OSM.");
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void seedDatabase() {
+        if (userRepository.count() == 0) {
+            userRepository.save(new com.example.bellmanford.model.User("dispatcher1", "password", com.example.bellmanford.model.User.UserRole.DISPATCHER));
+            userRepository.save(new com.example.bellmanford.model.User("driver1", "password", com.example.bellmanford.model.User.UserRole.DRIVER));
+            userRepository.save(new com.example.bellmanford.model.User("driver2", "password", com.example.bellmanford.model.User.UserRole.DRIVER));
+            System.out.println("Seeded initial users.");
+        }
+
+        if (hospitalRepository.count() == 0) {
+            createHospital("H1", "Panabo Polymedic Hospital");
+            createHospital("H2", "Good Shepherd Hospital");
+            createHospital("H3", "Rivera Medical Center");
+            System.out.println("Seeded initial hospitals.");
+        }
+
+        if (ambulanceRepository.count() == 0) {
+            seedAmbulance("AMB_1", "H1");
+            seedAmbulance("AMB_2", "H1");
+            seedAmbulance("AMB_3", "H2");
+            seedAmbulance("AMB_4", "H3");
+            System.out.println("Seeded initial ambulances.");
+        }
+    }
+
+    private void createHospital(String id, String name) {
+        GraphNode node = nodes.get(id);
+        if (node != null) {
+            com.example.bellmanford.model.Location location = new com.example.bellmanford.model.Location(
+                id, name, node.getLatitude(), node.getLongitude(), 
+                com.example.bellmanford.model.Location.LocationType.HOSPITAL
+            );
+            locationRepository.save(location);
+            hospitalRepository.save(new com.example.bellmanford.model.Hospital(location, name));
+        }
+    }
+
+    private void seedAmbulance(String ambId, String hospAlias) {
+        hospitalRepository.findAll().stream()
+            .filter(h -> h.getName().equals(nodes.get(hospAlias).getName()))
+            .findFirst()
+            .ifPresent(h -> {
+                ambulanceRepository.save(new com.example.bellmanford.model.Ambulance(
+                    ambId, h, com.example.bellmanford.model.Ambulance.AmbulanceStatus.AVAILABLE
+                ));
+            });
     }
     
     private void addAlias(String alias, String originalId, String aliasName) {
