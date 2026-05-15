@@ -34,7 +34,7 @@ import { ref, onMounted } from 'vue'
 const logs = ref([])
 
 onMounted(async () => {
-  const res = await fetch('http://localhost:8080/api/missions')
+  const res = await fetch('http://localhost:8081/api/missions')
   if (res.ok) logs.value = await res.json()
 })
 

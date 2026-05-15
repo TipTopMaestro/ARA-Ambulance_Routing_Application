@@ -151,14 +151,14 @@ onUnmounted(() => {
 
 const fetchNodes = async () => {
   try {
-    const res = await fetch('http://localhost:8080/api/nodes')
+    const res = await fetch('http://localhost:8081/api/nodes')
     if (res.ok) allNodes.value = await res.json()
   } catch (e) { console.error("Failed to fetch nodes", e) }
 }
 
 const fetchAmbulances = async () => {
   try {
-    const res = await fetch('http://localhost:8080/api/ambulances')
+    const res = await fetch('http://localhost:8081/api/ambulances')
     if (res.ok) ambulances.value = await res.json()
   } catch (e) { console.error("Failed to fetch ambulances", e) }
 }
@@ -189,7 +189,7 @@ const handleCalculateRoute = async () => {
   routeData.value = null
   systemLog.value = 'Initiating Bellman-Ford shortest path analysis...'
   try {
-    const res = await fetch('http://localhost:8080/api/path', {
+    const res = await fetch('http://localhost:8081/api/path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sourceId, targetId: destinationId.value }),
@@ -242,7 +242,7 @@ const handleDispatch = async () => {
     return
   }
 
-  const patientRes = await fetch('http://localhost:8080/api/patients', {
+  const patientRes = await fetch('http://localhost:8081/api/patients', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -267,7 +267,7 @@ const handleDispatch = async () => {
     pathId: routeData.value.pathId
   }
 
-  const res = await fetch('http://localhost:8080/api/missions', {
+  const res = await fetch('http://localhost:8081/api/missions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(mission),
