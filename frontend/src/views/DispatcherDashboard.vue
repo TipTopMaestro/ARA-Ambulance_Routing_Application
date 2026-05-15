@@ -1,13 +1,16 @@
 <template>
-  <div class="dispatcher-dashboard">
+  <div class="dispatcher-dashboard"> 
     
     <!-- Left Panel: Emergency Details Form -->
     <div class="left-panel">
-      <div class="panel-header">
-        <h2 class="panel-title">Emergency Details</h2>
-        <button @click="resetForm" class="reset-btn">Reset</button>
+      <div class="card-header">
+        <div class="panel-header">
+          <h2 class="panel-title">Emergency Details</h2>
+        </div>
+        <div class="reset-container">
+          <button @click="resetForm" class="reset-btn">Reset</button>
+        </div>
       </div>
-      
       <div class="form-group">
         <label class="form-label">Patient Name:</label>
         <input type="text" v-model="patientName" placeholder="Enter patient name" class="form-input" />
@@ -20,12 +23,23 @@
 
       <div class="form-group">
         <label class="form-label">Patient Location:</label>
-        <select v-model="destinationId" class="form-select">
-          <option value="">Select patient location</option>
-          <option v-for="n in allNodes" :key="n.id" :value="n.id">
+
+        <input
+          v-model="destinationId"
+          list="locationSuggestions"
+          class="form-select"
+          placeholder="Select, click map, or type location"
+        />
+
+        <datalist id="locationSuggestions">
+          <option
+            v-for="n in allNodes"
+            :key="n.id"
+            :value="n.id"
+          >
             {{ n.name || n.id }}
           </option>
-        </select>
+        </datalist>
       </div>
 
       <div class="form-group form-group-large">
@@ -49,32 +63,41 @@
       <!-- ETA Section -->
       <div class="eta-section">
         <h3 class="eta-title">ETA</h3>
-        
+
         <div class="eta-item">
-          <label class="eta-label">Unit Station (Hospital):</label>
-          <div class="eta-value">
-            {{ routeData?.estimatedTime?.toFixed(1) || '0.0' }} min
+            <div class="eta-value">
+              {{ routeData?.estimatedTime?.toFixed(1) || '0.0' }} min
+            </div>
+          </div>
+
+        <div class="eta-item">
+          <label class="eta-label">Assigned Hospital:</label>
+          <div class="eta-hospital">
+            <div v-if="selectedAmbulance">
+              <div style="font-weight:600">{{ ambulances.find(a => a.id === selectedAmbulance)?.hospitalName || ambulances.find(a => a.id === selectedAmbulance)?.hospitalId }}</div>
+            </div>
+            <div v-else>
+              Not assigned
+            </div>
           </div>
         </div>
 
         <div class="eta-item">
           <label class="eta-label">Patient Location:</label>
           <div class="eta-location">
-            {{ destinationId ? allNodes.find(n => n.id === destinationId)?.name || destinationId : 'Not selected' }}
+            <div v-if="selectedNode">
+              <div style="font-weight:600">{{ selectedNode.name || selectedNode.id }}</div>
+              <div style="font-size:0.85rem; color:#6b7280">{{ selectedNode.address || (selectedNode.lat && selectedNode.lon ? `Coords: ${selectedNode.lat}, ${selectedNode.lon}` : '') }}
+              </div>
+            </div>
+            <div v-else>
+              Not selected
+            </div>
           </div>
         </div>
-
-        <button 
-          @click="handleDispatch"
-          :disabled="!routeData || !selectedAmbulance"
-          class="btn-primary btn-secondary"
-        >
-          Dispatch Unit {{ selectedAmbulance }}
-        </button>
       </div>
     </div>
 
-    <!-- Center Panel: Map -->
     <div class="map-panel">
       <Map 
         :allNodes="allNodes" 
@@ -91,6 +114,9 @@
 
     <!-- Right Panel: Fleet Status & System Status -->
     <div class="right-panel">
+      <div class="action-panel">
+        <label class="form-label">Current Action: {{ currentAction }}...</label>
+      </div>
       <!-- Fleet Status Card -->
       <div class="fleet-status">
         <h3 class="panel-subtitle">Fleet Status</h3>
@@ -147,14 +173,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import Map from '../components/Map.vue'
 import { useAuth } from '../composables/useAuth'
 
 const { user } = useAuth()
 const allNodes = ref([])
 const allEdges = ref([])
-const ambulances = ref([])
+// Mockup units (used until backend provides real data)
+const ambulances = ref([
+  { id: 'AMB01', status: 'AVAILABLE', hospitalId: 'RMCI', hospitalName: 'RMCI Medical Center', hospitalOsmNodeId: 'H1' },
+  { id: 'AMB02', status: 'BUSY', hospitalId: 'CGH', hospitalName: 'City General Hospital', hospitalOsmNodeId: 'H2' }
+])
 
 const patientName = ref('')
 const emergencyType = ref('')
@@ -164,9 +194,44 @@ const selectedHospitalId = ref(null)
 const destinationId = ref('')
 const locationDescription = ref('')
 
+// computed selected node details for ETA location display
+const selectedNode = computed(() => {
+  if (!destinationId.value) return null
+  return allNodes.value.find(n => n.id === destinationId.value) || null
+})
+
+// when dispatcher selects an ambulance, auto-fill assigned hospital info
+watch(selectedAmbulance, (val) => {
+  if (!val) {
+    selectedHospital.value = ''
+    selectedHospitalId.value = null
+    return
+  }
+  const amb = ambulances.value.find(a => a.id === val)
+  if (amb) {
+    selectedHospital.value = amb.hospitalOsmNodeId || ''
+    selectedHospitalId.value = amb.hospitalId || null
+  }
+})
+
 const routeData = ref(null)
 const loading = ref(false)
 const systemLog = ref('Ready')
+
+// human-friendly current action status for the UI (shows what the user is about to do)
+  const currentAction = computed(() => {
+    if (loading.value) return 'Calculating route'
+
+    // Primary UI flow states (only these three messages are used):
+    // 1) Adding patient location — when destination not chosen
+    if (!destinationId.value) return 'Adding patient location'
+
+    // 2) Selecting unit — when destination chosen but no ambulance selected
+    if (!selectedAmbulance.value) return 'Selecting unit'
+
+    // 3) Calculating route — when both destination and ambulance are selected
+    return 'Calculating route'
+  })
 
 const currentTraversedNode = ref(null)
 const currentRelaxedEdge = ref(null)
@@ -197,7 +262,11 @@ const fetchNodes = async () => {
 const fetchAmbulances = async () => {
   try {
     const res = await fetch('http://localhost:8081/api/ambulances')
-    if (res.ok) ambulances.value = await res.json()
+    if (res.ok) {
+      const data = await res.json()
+      // Only override the mockups if backend returns real list
+      if (Array.isArray(data) && data.length > 0) ambulances.value = data
+    }
   } catch (e) { console.error("Failed to fetch ambulances", e) }
 }
 
@@ -350,7 +419,7 @@ const resetForm = () => {
 .fleet-status,
 .system-status {
   background-color: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -360,9 +429,14 @@ const resetForm = () => {
   padding: 1.5rem;
 }
 
-.panel-header {
+.card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header {
+  display: flex;
   align-items: center;
   margin-bottom: 1.5rem;
 }
@@ -374,45 +448,45 @@ const resetForm = () => {
   color: #374151;
 }
 
+.reset-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 .reset-btn {
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
-  background-color: #374151;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background-color: transparent;
+  color: #374151; 
   cursor: pointer;
   font-weight: 600;
-}
-
-.reset-btn:hover:not(:disabled) {
-  opacity: 0.9;
+  border: 1px solid #d1d5db; 
 }
 
 /* Form Elements */
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
 }
 
 .form-group-large {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .form-label {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 0.3rem;
 }
 
 .form-input,
 .form-select {
   width: 100%;
-  padding: 0.6rem;
+  padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-family: inherit;
   box-sizing: border-box;
   background-color: white;
@@ -427,19 +501,19 @@ const resetForm = () => {
 /* Buttons */
 .btn-primary {
   width: 100%;
-  padding: 0.8rem;
+  padding: 0.6rem;
   background-color: #ef4444;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
   transition: opacity 0.2s;
 }
 
 .btn-large {
-  font-size: 1rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
 }
 
 .btn-secondary {
@@ -468,7 +542,7 @@ const resetForm = () => {
 .eta-title {
   font-weight: bold;
   color: #374151;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.5rem 0;
   font-size: 0.95rem;
 }
 
@@ -484,16 +558,24 @@ const resetForm = () => {
 }
 
 .eta-value {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: #374151;
 }
 
 .eta-location {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #374151;
   background-color: #f9fafb;
-  padding: 0.6rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.eta-hospital {
+  font-size: 0.8rem;
+  color: #374151;
+  background-color: #f9fafb;
+  padding: 0.5rem;
   border-radius: 4px;
 }
 
@@ -510,6 +592,16 @@ const resetForm = () => {
   flex-direction: column;
   gap: 1rem;
   overflow: hidden;
+}
+
+.action-panel {
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* Fleet Status */
