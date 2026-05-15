@@ -88,13 +88,13 @@ onUnmounted(() => {
 })
 
 const fetchNodes = async () => {
-  const res = await fetch('http://localhost:8080/api/nodes')
+  const res = await fetch('http://localhost:8081/api/nodes')
   if (res.ok) allNodes.value = await res.json()
 }
 
 const fetchActiveMission = async () => {
   try {
-    const res = await fetch(`http://localhost:8080/api/missions/active/${user.value.id}`)
+    const res = await fetch(`http://localhost:8081/api/missions/active/${user.value.id}`)
     if (res.ok) {
       activeMission.value = await res.json()
     } else {
@@ -109,7 +109,7 @@ const fetchActiveMission = async () => {
 
 const updateStatus = async (newStatus) => {
   if (!activeMission.value) return
-  const res = await fetch(`http://localhost:8080/api/missions/${activeMission.value.id}/status`, {
+  const res = await fetch(`http://localhost:8081/api/missions/${activeMission.value.id}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: newStatus }),
