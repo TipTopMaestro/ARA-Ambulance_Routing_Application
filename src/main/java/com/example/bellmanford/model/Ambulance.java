@@ -2,14 +2,13 @@ package com.example.bellmanford.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Table(name = "ambulances")
 public class Ambulance {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
@@ -32,11 +31,11 @@ public class Ambulance {
         this.status = status;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -46,7 +45,7 @@ public class Ambulance {
     }
 
     @JsonProperty("hospitalId")
-    public java.util.UUID getHospitalId() {
+    public Long getHospitalId() {
         return hospital != null ? hospital.getId() : null;
     }
 

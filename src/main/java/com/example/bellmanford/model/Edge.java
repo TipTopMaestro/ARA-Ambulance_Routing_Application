@@ -13,7 +13,7 @@ import lombok.AllArgsConstructor;
 public class Edge {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long edgeId;
+    private Long edge_id;
 
     @ManyToOne
     @JoinColumn(name = "source_node_id")
@@ -31,8 +31,8 @@ public class Edge {
         return distanceMeters * trafficFactor;
     }
 
-    public Long getEdgeId() { return edgeId; }
-    public void setEdgeId(Long edgeId) { this.edgeId = edgeId; }
+    public Long getEdgeId() { return edge_id; }
+    public void setEdgeId(Long edgeId) { this.edge_id = edgeId; }
     public Node getSource() { return source; }
     public void setSource(Node source) { this.source = source; }
     public Node getTarget() { return target; }

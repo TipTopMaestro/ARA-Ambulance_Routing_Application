@@ -27,7 +27,7 @@ public class AmbulanceController {
     }
 
     @GetMapping("/hospital/{hospitalId}")
-    public ResponseEntity<List<Ambulance>> getAmbulancesByHospital(@PathVariable java.util.UUID hospitalId) {
+    public ResponseEntity<List<Ambulance>> getAmbulancesByHospital(@PathVariable Long hospitalId) {
         return hospitalRepository.findById(hospitalId)
             .map(h -> ResponseEntity.ok(ambulanceRepository.findByHospital(h)))
             .orElse(ResponseEntity.notFound().build());
