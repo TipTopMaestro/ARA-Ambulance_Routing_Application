@@ -13,8 +13,6 @@ public class Patient {
     private String name;
 
     private String contactNumber;
-
-    @Column(nullable = false)
     private String emergencyType;
 
     public Patient() {}
@@ -25,7 +23,6 @@ public class Patient {
         this.emergencyType = emergencyType;
     }
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

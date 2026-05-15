@@ -3,7 +3,10 @@ package com.example.bellmanford.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "locations")
+@Table(name = "locations", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"latitude", "longitude"}),
+    @UniqueConstraint(columnNames = {"osmNodeId"})
+})
 public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

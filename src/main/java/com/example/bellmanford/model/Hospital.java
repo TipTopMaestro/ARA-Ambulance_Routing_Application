@@ -1,6 +1,15 @@
 package com.example.bellmanford.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "hospitals")
@@ -9,8 +18,13 @@ public class Hospital {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "location_id", referencedColumnName = "id", unique = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @OneToMany(mappedBy = "hospital")
+    private java.util.List<Ambulance> ambulances;
+
+
+    @OneToOne(cascade = CascadeType.ALL, optional = false)
+    @JoinColumn(name = "location_id", referencedColumnName = "id", nullable = false, unique = true)
     private Location location;
 
     @Column(nullable = false)

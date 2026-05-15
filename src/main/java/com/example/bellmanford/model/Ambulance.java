@@ -1,6 +1,17 @@
 package com.example.bellmanford.model;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "ambulances")
@@ -9,10 +20,8 @@ public class Ambulance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String ambulanceCode;
-
-    @ManyToOne
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
     @JoinColumn(name = "hospital_id", nullable = false)
     private Hospital hospital;
 
@@ -27,8 +36,8 @@ public class Ambulance {
     public Ambulance() {
     }
 
-    public Ambulance(String ambulanceCode, Hospital hospital, AmbulanceStatus status) {
-        this.ambulanceCode = ambulanceCode;
+    public Ambulance(Hospital hospital, AmbulanceStatus status) {
+        
         this.hospital = hospital;
         this.status = status;
     }
@@ -41,16 +50,20 @@ public class Ambulance {
         this.id = id;
     }
 
-    public String getAmbulanceCode() {
-        return ambulanceCode;
-    }
 
-    public void setAmbulanceCode(String ambulanceCode) {
-        this.ambulanceCode = ambulanceCode;
-    }
-
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public Hospital getHospital() {
         return hospital;
+    }
+
+    @JsonProperty("hospitalId")
+    public Long getHospitalId() {
+        return hospital != null ? hospital.getId() : null;
+    }
+
+    @JsonProperty("hospitalOsmNodeId")
+    public String getHospitalOsmNodeId() {
+        return hospital != null && hospital.getLocation() != null ? hospital.getLocation().getOsmNodeId() : null;
     }
 
     public void setHospital(Hospital hospital) {

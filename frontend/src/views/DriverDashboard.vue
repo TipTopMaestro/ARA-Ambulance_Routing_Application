@@ -57,7 +57,7 @@
       <Map 
         :allNodes="allNodes" 
         :pathCoordinates="routeCoordinates"
-        :selectedSource="activeMission?.hospitalId"
+        :selectedSource="activeMission?.hospitalOsmNodeId"
         :selectedDestination="destinationId"
         :onNodeClick="() => {}"
       />
@@ -94,7 +94,7 @@ const fetchNodes = async () => {
 
 const fetchActiveMission = async () => {
   try {
-    const res = await fetch(`http://localhost:8080/api/missions/active/${user.id}`)
+    const res = await fetch(`http://localhost:8080/api/missions/active/${user.value.id}`)
     if (res.ok) {
       activeMission.value = await res.json()
     } else {

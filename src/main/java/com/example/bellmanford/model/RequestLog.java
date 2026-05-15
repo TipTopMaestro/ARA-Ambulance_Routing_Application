@@ -1,5 +1,6 @@
 package com.example.bellmanford.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -10,11 +11,15 @@ public class RequestLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "hospital_id", nullable = false)
+    private Hospital hospital;
+
+    @ManyToOne(optional = false)
     @JoinColumn(name = "dispatcher_id", nullable = false)
     private User dispatcher;
 
@@ -22,35 +27,27 @@ public class RequestLog {
     @JoinColumn(name = "driver_id")
     private User driver;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "ambulance_id", nullable = false)
     private Ambulance ambulance;
 
     @Column(nullable = false)
     private String emergencyType;
 
-    @ManyToOne
-    @JoinColumn(name = "source_location_id", nullable = false)
-    private Location sourceLocation;
-
-    @ManyToOne
-    @JoinColumn(name = "target_location_id", nullable = false)
-    private Location targetLocation;
-
-    @ManyToOne
-    @JoinColumn(name = "path_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "path_id", nullable = false)
     private GeneratedPath generatedPath;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private MissionStatus status;
+    private RequestStatus status;
 
     private LocalDateTime requestedAt;
     private LocalDateTime dispatchedAt;
     private LocalDateTime arrivedAtPatientAt;
     private LocalDateTime completedAt;
 
-    public enum MissionStatus {
+    public enum RequestStatus {
         PENDING, DISPATCHED, EN_ROUTE, TRANSPORT, COMPLETED, CANCELLED
     }
 
@@ -68,6 +65,9 @@ public class RequestLog {
     public Patient getPatient() { return patient; }
     public void setPatient(Patient patient) { this.patient = patient; }
 
+    public Hospital getHospital() { return hospital; }
+    public void setHospital(Hospital hospital) { this.hospital = hospital; }
+
     public User getDispatcher() { return dispatcher; }
     public void setDispatcher(User dispatcher) { this.dispatcher = dispatcher; }
 
@@ -80,17 +80,11 @@ public class RequestLog {
     public String getEmergencyType() { return emergencyType; }
     public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
 
-    public Location getSourceLocation() { return sourceLocation; }
-    public void setSourceLocation(Location sourceLocation) { this.sourceLocation = sourceLocation; }
-
-    public Location getTargetLocation() { return targetLocation; }
-    public void setTargetLocation(Location targetLocation) { this.targetLocation = targetLocation; }
-
     public GeneratedPath getGeneratedPath() { return generatedPath; }
     public void setGeneratedPath(GeneratedPath generatedPath) { this.generatedPath = generatedPath; }
 
-    public MissionStatus getStatus() { return status; }
-    public void setStatus(MissionStatus status) { this.status = status; }
+    public RequestStatus getStatus() { return status; }
+    public void setStatus(RequestStatus status) { this.status = status; }
 
     public LocalDateTime getRequestedAt() { return requestedAt; }
     public void setRequestedAt(LocalDateTime requestedAt) { this.requestedAt = requestedAt; }
@@ -103,4 +97,68 @@ public class RequestLog {
 
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    // Jackson-friendly getters for frontend compatibility
+    @JsonProperty("patientName")
+    public String getPatientName() {
+        return patient != null ? patient.getName() : null;
+    }
+
+    @JsonProperty("ambulanceId")
+    public String getAmbulanceIdString() {
+        return ambulance != null ? ambulance.getId().toString() : null;
+    }
+
+    @JsonProperty("hospitalId")
+    public Long getHospitalId() {
+        return hospital != null ? hospital.getId() : null;
+    }
+
+    @JsonProperty("hospitalOsmNodeId")
+    public String getHospitalOsmNodeId() {
+        return hospital != null && hospital.getLocation() != null ? hospital.getLocation().getOsmNodeId() : null;
+    }
+
+    @JsonProperty("patientLocationName")
+    public String getPatientLocationName() {
+        return generatedPath != null && generatedPath.getTargetLocation() != null
+            ? generatedPath.getTargetLocation().getName()
+            : null;
+    }
+
+    @JsonProperty("pathId")
+    public Long getPathId() {
+        return generatedPath != null ? generatedPath.getId() : null;
+    }
+
+    @JsonProperty("dispatchTime")
+    public LocalDateTime getDispatchTime() {
+        return dispatchedAt;
+    }
+
+    @JsonProperty("estimatedTime")
+    public Double getEstimatedTimeMinutes() {
+        return (generatedPath != null && generatedPath.getEstimatedTimeSeconds() != null) 
+            ? generatedPath.getEstimatedTimeSeconds() / 60.0 
+            : null;
+    }
+
+    @JsonProperty("routeCoordinatesJson")
+    public String getRouteCoordinatesJson() {
+        return generatedPath != null ? generatedPath.getRouteJson() : null;
+    }
+
+    @JsonProperty("patientLat")
+    public Double getPatientLat() {
+        return (patient != null && generatedPath != null && generatedPath.getTargetLocation() != null)
+            ? generatedPath.getTargetLocation().getLatitude()
+            : null;
+    }
+
+    @JsonProperty("patientLng")
+    public Double getPatientLng() {
+        return (patient != null && generatedPath != null && generatedPath.getTargetLocation() != null)
+            ? generatedPath.getTargetLocation().getLongitude()
+            : null;
+    }
 }

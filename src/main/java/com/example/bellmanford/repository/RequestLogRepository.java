@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface RequestLogRepository extends JpaRepository<RequestLog, Long> {
     List<RequestLog> findByDispatcher(User dispatcher);
     List<RequestLog> findByDriver(User driver);
-    Optional<RequestLog> findByDriverAndStatusIn(User driver, List<RequestLog.MissionStatus> statuses);
+    Optional<RequestLog> findByDriverAndStatusIn(User driver, List<RequestLog.RequestStatus> statuses);
     List<RequestLog> findByAmbulance(Ambulance ambulance);
 }

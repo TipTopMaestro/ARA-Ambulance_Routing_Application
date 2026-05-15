@@ -15,21 +15,24 @@ Located in `src/main/java/com/example/bellmanford/`
     *   `RouteController`: Fetching map nodes and initiating path calculations.
 *   **`/service`**: Core Business Logic.
     *   `BellmanFordService`: The routing engine. Implements shortest-path logic, relaxation tracking for visualization, and negative cycle detection.
+    *   `MissionService`: Orchestrates the transition from incident to active mission and log archival.
     *   `MockDatabaseService`: Graph constructor. Parses OSM data, manages aliases (e.g., "H1"), seeds initial data, and injects random negative weights.
 *   **`/model`**: JPA Entities & DTOs.
-    *   `User`, `Ambulance`, `Mission`: Persisted in MySQL.
+    *   `User`, `Ambulance`, `Hospital`, `Location`, `Patient`, `RequestLog`: Standardized relational entities persisted in MySQL.
     *   `GraphNode`, `GraphEdge`: In-memory representation of the city map.
     *   `RelaxationStep`, `PathResponse`: Data structures for frontend visualization.
 *   **`/repository`**: Spring Data JPA interfaces for MySQL access.
 
-### 💻 Frontend (React / Vite)
+### 💻 Frontend (Vue 3 / Vite)
 Located in `frontend/src/`
+*   **`/views`**:
+    *   `Login.vue`: Role-based authentication entry point.
+    *   `DispatcherDashboard.vue`: Complex UI for incident entry, fleet monitoring, and algorithm visualization.
+    *   `DriverDashboard.vue`: Mission-focused UI for navigation and status updates.
+    *   `MissionLogs.vue`: Historical audit and analysis view.
 *   **`/components`**:
-    *   `Login.jsx`: Role-based authentication entry point.
-    *   `DispatcherDashboard.jsx`: Complex UI for incident entry, fleet monitoring, and algorithm visualization.
-    *   `DriverDashboard.jsx`: Mission-focused UI for navigation and status updates.
-    *   `Map.jsx`: High-performance Leaflet integration with custom layers for negative edges and real-time relaxation.
-*   **`AuthContext.jsx`**: Global state management for user sessions and roles.
+    *   `Map.vue`: High-performance Leaflet integration with custom layers for negative edges and real-time relaxation.
+*   **`/composables`**: Reactive logic for auth and state management.
 
 ---
 

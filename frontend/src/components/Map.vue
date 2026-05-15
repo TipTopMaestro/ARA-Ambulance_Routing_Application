@@ -15,7 +15,8 @@ const props = defineProps({
   selectedDestination: { type: String, default: null },
   allEdges: { type: Array, default: () => [] },
   currentTraversedNode: { type: String, default: null },
-  currentRelaxedEdge: { type: Object, default: null }
+  currentRelaxedEdge: { type: Object, default: null },
+  visitedNodes: { type: Array, default: () => [] }
 })
 
 const mapContainer = ref(null)
@@ -83,17 +84,27 @@ const updateMap = () => {
 
   // Background markers
   backgroundMarkersLayer.clearLayers()
+  const visitedSet = new Set(props.visitedNodes)
+
   props.allNodes.forEach(node => {
     const isHospital = node.id.startsWith('H')
     const isAmbulance = node.id.startsWith('AMB')
     const isSelected = node.id === props.selectedSource || node.id === props.selectedDestination
     const isTraversed = node.id === props.currentTraversedNode
+    const isVisited = visitedSet.has(node.id)
     
+    let fillColor = '#3b82f6' // Default blue
+    if (isTraversed) fillColor = '#f43f5e'
+    else if (isSelected) fillColor = '#10b981'
+    else if (isHospital) fillColor = '#ef4444'
+    else if (isAmbulance) fillColor = '#f59e0b'
+    else if (isVisited) fillColor = '#fbbf24' // Amber for visited
+
     const marker = L.circleMarker([node.latitude, node.longitude], {
       radius: isTraversed ? 12 : (isSelected ? 10 : (isHospital ? 8 : (isAmbulance ? 7 : 5))),
-      fillColor: isTraversed ? '#f43f5e' : (isSelected ? '#10b981' : (isHospital ? '#ef4444' : (isAmbulance ? '#f59e0b' : '#3b82f6'))),
-      color: isTraversed ? '#be123c' : (isSelected ? '#064e3b' : '#ffffff'),
-      weight: (isSelected || isTraversed) ? 4 : 2,
+      fillColor: fillColor,
+      color: isTraversed ? '#be123c' : (isSelected ? '#064e3b' : (isVisited ? '#d97706' : '#ffffff')),
+      weight: (isSelected || isTraversed || isVisited) ? 4 : 2,
       opacity: 1,
       fillOpacity: 0.9
     })

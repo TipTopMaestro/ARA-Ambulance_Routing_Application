@@ -184,10 +184,10 @@ public class MockDatabaseService {
         }
 
         if (ambulanceRepository.count() == 0) {
-            seedAmbulance("AMB_1", "H1");
-            seedAmbulance("AMB_2", "H1");
-            seedAmbulance("AMB_3", "H2");
-            seedAmbulance("AMB_4", "H3");
+            seedAmbulance("H1");
+            seedAmbulance("H1");
+            seedAmbulance("H2");
+            seedAmbulance("H3");
             System.out.println("Seeded initial ambulances.");
         }
     }
@@ -204,13 +204,13 @@ public class MockDatabaseService {
         }
     }
 
-    private void seedAmbulance(String ambId, String hospAlias) {
+    private void seedAmbulance(String hospAlias) {
         hospitalRepository.findAll().stream()
             .filter(h -> h.getName().equals(nodes.get(hospAlias).getName()))
             .findFirst()
             .ifPresent(h -> {
                 ambulanceRepository.save(new com.example.bellmanford.model.Ambulance(
-                    ambId, h, com.example.bellmanford.model.Ambulance.AmbulanceStatus.AVAILABLE
+                    h, com.example.bellmanford.model.Ambulance.AmbulanceStatus.AVAILABLE
                 ));
             });
     }

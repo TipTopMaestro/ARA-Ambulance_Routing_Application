@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.bellmanford.model.GraphNode;
 import com.example.bellmanford.model.PathRequest;
 import com.example.bellmanford.model.PathResponse;
@@ -26,15 +27,18 @@ public class RouteController {
 
     private final com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository;
     private final com.example.bellmanford.repository.LocationRepository locationRepository;
+    private final ObjectMapper objectMapper;
 
     public RouteController(BellmanFordService bellmanFordService, 
                            MockDatabaseService databaseService,
                            com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository,
-                           com.example.bellmanford.repository.LocationRepository locationRepository) {
+                           com.example.bellmanford.repository.LocationRepository locationRepository,
+                           ObjectMapper objectMapper) {
         this.bellmanFordService = bellmanFordService;
         this.databaseService = databaseService;
         this.generatedPathRepository = generatedPathRepository;
         this.locationRepository = locationRepository;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/path")
@@ -69,9 +73,8 @@ public class RouteController {
                 pathLog.setTargetLocation(target);
                 pathLog.setEstimatedDistanceMeters(0.0); // Should be calculated if needed
                 pathLog.setEstimatedTimeSeconds(response.getEstimatedTime());
-                // Simple JSON serialization for now
-                pathLog.setRouteJson(response.getPath().toString()); 
-                generatedPathRepository.save(pathLog);
+                pathLog.setRouteJson(objectMapper.writeValueAsString(response.getCoordinates()));
+                response.setPathId(generatedPathRepository.save(pathLog).getId());
             }
         } catch (Exception e) {
             System.err.println("Failed to log path: " + e.getMessage());

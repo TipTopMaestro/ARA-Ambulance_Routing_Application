@@ -22,8 +22,8 @@
         <label>Ambulance Selection</label>
         <select v-model="selectedAmbulance">
           <option value="">Select Ambulance</option>
-          <option v-for="amb in ambulances" :key="amb.id" :value="amb.ambulanceId">
-            {{ amb.ambulanceId }} ({{ amb.hospitalId }}) - {{ amb.status }}
+          <option v-for="amb in ambulances" :key="amb.id" :value="amb.id">
+            Ambulance #{{ amb.id }} (Hospital {{ amb.hospitalId }}) - {{ amb.status }}
           </option>
         </select>
       </div>
@@ -45,7 +45,7 @@
 
       <button 
         @click="handleCalculateRoute" 
-        :disabled="!destinationId || loading"
+        :disabled="!selectedAmbulance || !destinationId || loading"
         style="width: 100%; margin-bottom: 1rem; background-color: #3b82f6"
       >
         Generate Optimal Path
@@ -81,6 +81,7 @@
         :allEdges="allEdges"
         :currentTraversedNode="currentTraversedNode"
         :currentRelaxedEdge="currentRelaxedEdge"
+        :visitedNodes="visitedNodes"
       />
     </div>
 
@@ -90,11 +91,11 @@
         <h3 style="margin-top: 0">System Status</h3>
         <div style="display: flex; flex-direction: column; gap: 0.5rem">
           <div style="display: flex; justify-content: space-between">
-            <span>Fleet Active:</span>
+            <span>Ambulances Active:</span>
             <strong>{{ ambulances.filter(a => a.status !== 'AVAILABLE').length }}</strong>
           </div>
           <div style="display: flex; justify-content: space-between">
-            <span>Available:</span>
+            <span>Ambulances Available:</span>
             <strong style="color: #10b981">{{ ambulances.filter(a => a.status === 'AVAILABLE').length }}</strong>
           </div>
         </div>
@@ -121,6 +122,7 @@ const patientName = ref('')
 const emergencyType = ref('')
 const selectedHospital = ref('') // Internal source, usually inferred from ambulance
 const selectedAmbulance = ref('')
+const selectedHospitalId = ref(null)
 const destinationId = ref('')
 const locationDescription = ref('')
 
@@ -130,6 +132,7 @@ const systemLog = ref('Ready')
 
 const currentTraversedNode = ref(null)
 const currentRelaxedEdge = ref(null)
+const visitedNodes = ref([])
 const visualizationActive = ref(false)
 
 let pollInterval = null
@@ -166,16 +169,19 @@ const handleNodeClick = (id) => {
 }
 
 const handleCalculateRoute = async () => {
-  if (!destinationId.value) {
-    systemLog.value = 'Please select a destination location.'
+  if (!selectedAmbulance.value || !destinationId.value) {
+    systemLog.value = 'Please select an ambulance and destination location.'
     return
   }
 
   // Find source hospital from selected ambulance or use default H1 if none selected
   let sourceId = 'H1'
   if (selectedAmbulance.value) {
-    const amb = ambulances.value.find(a => a.ambulanceId === selectedAmbulance.value)
-    if (amb) sourceId = amb.hospitalId
+    const amb = ambulances.value.find(a => a.id === selectedAmbulance.value)
+    if (amb) {
+      sourceId = amb.hospitalOsmNodeId
+      selectedHospitalId.value = amb.hospitalId
+    }
   }
   selectedHospital.value = sourceId
 
@@ -206,12 +212,22 @@ const handleCalculateRoute = async () => {
 
 const visualizeAlgorithm = async (steps) => {
   visualizationActive.value = true
+  visitedNodes.value = []
+  const visitedSet = new Set()
+
   // Limit steps to visualize if too many, or just go fast
-  const visualizationSteps = steps.slice(0, 500) // Visualization limit for UI speed
+  const visualizationSteps = steps.slice(0, 1000) // Slightly more for better visualization
   for (const step of visualizationSteps) {
     currentTraversedNode.value = step.targetId
     currentRelaxedEdge.value = { sourceId: step.sourceId, targetId: step.targetId }
-    await new Promise(resolve => setTimeout(resolve, 10))
+    
+    if (!visitedSet.has(step.targetId)) {
+      visitedSet.add(step.targetId)
+      visitedNodes.value = Array.from(visitedSet)
+    }
+
+    // Faster speed for the "wave" effect
+    await new Promise(resolve => setTimeout(resolve, 5))
   }
   currentTraversedNode.value = null
   currentRelaxedEdge.value = null
@@ -220,19 +236,35 @@ const visualizeAlgorithm = async (steps) => {
 
 const handleDispatch = async () => {
   if (!selectedAmbulance.value || !routeData.value) return
-  
-  const patientNode = allNodes.value.find(n => n.id === destinationId.value)
+
+  if (!routeData.value.pathId) {
+    systemLog.value = 'Route was calculated but not saved. Generate the path again.'
+    return
+  }
+
+  const patientRes = await fetch('http://localhost:8080/api/patients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: patientName.value,
+      emergencyType: emergencyType.value,
+    }),
+  })
+
+  if (!patientRes.ok) {
+    systemLog.value = 'Patient record could not be saved'
+    return
+  }
+
+  const patient = await patientRes.json()
   const mission = {
-    patientName: patientName.value,
+    patientId: patient.id,
     emergencyType: emergencyType.value,
-    patientLocationName: (patientNode?.name || destinationId.value) + (locationDescription.value ? ` (${locationDescription.value})` : ''),
-    patientLat: patientNode?.latitude,
-    patientLng: patientNode?.longitude,
-    hospitalId: selectedHospital.value,
+    hospitalId: selectedHospitalId.value || ambulances.value.find(a => a.id === selectedAmbulance.value)?.hospitalId,
     ambulanceId: selectedAmbulance.value,
+    dispatcherId: user.value?.id || 1,
     status: 'DISPATCHED',
-    routeCoordinatesJson: JSON.stringify(routeData.value.coordinates),
-    estimatedTime: routeData.value.estimatedTime
+    pathId: routeData.value.pathId
   }
 
   const res = await fetch('http://localhost:8080/api/missions', {
@@ -252,10 +284,12 @@ const resetForm = () => {
   patientName.value = ''
   emergencyType.value = ''
   selectedHospital.value = ''
+  selectedHospitalId.value = null
   selectedAmbulance.value = ''
   destinationId.value = ''
   locationDescription.value = ''
   routeData.value = null
+  visitedNodes.value = []
   systemLog.value = 'Form reset'
 }
 </script>

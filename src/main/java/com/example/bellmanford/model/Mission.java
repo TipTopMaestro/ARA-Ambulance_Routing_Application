@@ -4,21 +4,15 @@ import java.time.LocalDateTime;
 
 public class Mission {
     private Long id;
-    private String patientName;
+    private Long patientId;
     private String emergencyType;
 
-    // Patient Location
-    private String patientLocationName;
-    private Double patientLat;
-    private Double patientLng;
-
-    private String hospitalId;
-    private String ambulanceId;
+    private Long hospitalId;
+    private Long ambulanceId;
+    private Long dispatcherId;
     private Long driverId;
+    private Long pathId;
     private String status;
-
-    private String routeCoordinatesJson;
-    private Double estimatedTime;
 
     private LocalDateTime dispatchTime;
     private LocalDateTime transportTime;
@@ -30,38 +24,29 @@ public class Mission {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getPatientName() { return patientName; }
-    public void setPatientName(String patientName) { this.patientName = patientName; }
+    public Long getPatientId() { return patientId; }
+    public void setPatientId(Long patientId) { this.patientId = patientId; }
 
     public String getEmergencyType() { return emergencyType; }
     public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
 
-    public String getPatientLocationName() { return patientLocationName; }
-    public void setPatientLocationName(String patientLocationName) { this.patientLocationName = patientLocationName; }
+    public Long getHospitalId() { return hospitalId; }
+    public void setHospitalId(Long hospitalId) { this.hospitalId = hospitalId; }
 
-    public Double getPatientLat() { return patientLat; }
-    public void setPatientLat(Double patientLat) { this.patientLat = patientLat; }
+    public Long getAmbulanceId() { return ambulanceId; }
+    public void setAmbulanceId(Long ambulanceId) { this.ambulanceId = ambulanceId; }
 
-    public Double getPatientLng() { return patientLng; }
-    public void setPatientLng(Double patientLng) { this.patientLng = patientLng; }
-
-    public String getHospitalId() { return hospitalId; }
-    public void setHospitalId(String hospitalId) { this.hospitalId = hospitalId; }
-
-    public String getAmbulanceId() { return ambulanceId; }
-    public void setAmbulanceId(String ambulanceId) { this.ambulanceId = ambulanceId; }
+    public Long getDispatcherId() { return dispatcherId; }
+    public void setDispatcherId(Long dispatcherId) { this.dispatcherId = dispatcherId; }
 
     public Long getDriverId() { return driverId; }
     public void setDriverId(Long driverId) { this.driverId = driverId; }
 
+    public Long getPathId() { return pathId; }
+    public void setPathId(Long pathId) { this.pathId = pathId; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
-    public String getRouteCoordinatesJson() { return routeCoordinatesJson; }
-    public void setRouteCoordinatesJson(String routeCoordinatesJson) { this.routeCoordinatesJson = routeCoordinatesJson; }
-
-    public Double getEstimatedTime() { return estimatedTime; }
-    public void setEstimatedTime(Double estimatedTime) { this.estimatedTime = estimatedTime; }
 
     public LocalDateTime getDispatchTime() { return dispatchTime; }
     public void setDispatchTime(LocalDateTime dispatchTime) { this.dispatchTime = dispatchTime; }

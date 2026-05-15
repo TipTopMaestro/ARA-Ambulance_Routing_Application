@@ -10,6 +10,7 @@ public class PathResponse {
     private final String message;
     private final List<RouteStep> steps;
     private final List<RelaxationStep> relaxationSteps;
+    private Long pathId;
 
     public PathResponse(List<String> path, List<Coordinate> coordinates, double estimatedTime, boolean negativeCycleDetected, String message, List<RouteStep> steps, List<RelaxationStep> relaxationSteps) {
         this.path = path;
@@ -47,5 +48,13 @@ public class PathResponse {
 
     public List<RelaxationStep> getRelaxationSteps() {
         return relaxationSteps;
+    }
+
+    public Long getPathId() {
+        return pathId;
+    }
+
+    public void setPathId(Long pathId) {
+        this.pathId = pathId;
     }
 }
