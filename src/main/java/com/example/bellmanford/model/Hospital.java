@@ -1,49 +1,41 @@
 package com.example.bellmanford.model;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import org.locationtech.jts.geom.Point;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.UUID;
 
 @Entity
 @Table(name = "hospitals")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Hospital {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    @OneToMany(mappedBy = "hospital")
-    private java.util.List<Ambulance> ambulances;
-
-
-    @OneToOne(cascade = CascadeType.ALL, optional = false)
-    @JoinColumn(name = "location_id", referencedColumnName = "id", nullable = false, unique = true)
-    private Location location;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false)
     private String name;
 
-    public Hospital() {}
-
-    public Hospital(Location location, String name) {
-        this.location = location;
+    @Column(columnDefinition = "POINT", nullable = false)
+    private Point location;
+    
+    // For MockDatabaseService compatibility
+    public Hospital(Location loc, String name) {
         this.name = name;
+        if (loc != null) {
+            org.locationtech.jts.geom.GeometryFactory factory = new org.locationtech.jts.geom.GeometryFactory();
+            this.location = factory.createPoint(new org.locationtech.jts.geom.Coordinate(loc.getLongitude(), loc.getLatitude()));
+        }
     }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Location getLocation() { return location; }
-    public void setLocation(Location location) { this.location = location; }
-
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public Point getLocation() { return location; }
+    public void setLocation(Point location) { this.location = location; }
 }

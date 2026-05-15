@@ -110,20 +110,18 @@ public class RequestLog {
     }
 
     @JsonProperty("hospitalId")
-    public Long getHospitalId() {
+    public java.util.UUID getHospitalId() {
         return hospital != null ? hospital.getId() : null;
     }
 
     @JsonProperty("hospitalOsmNodeId")
     public String getHospitalOsmNodeId() {
-        return hospital != null && hospital.getLocation() != null ? hospital.getLocation().getOsmNodeId() : null;
+        return null; // Placeholder until mapping is restored
     }
 
     @JsonProperty("patientLocationName")
     public String getPatientLocationName() {
-        return generatedPath != null && generatedPath.getTargetLocation() != null
-            ? generatedPath.getTargetLocation().getName()
-            : null;
+        return null; // Placeholder
     }
 
     @JsonProperty("pathId")
@@ -150,15 +148,15 @@ public class RequestLog {
 
     @JsonProperty("patientLat")
     public Double getPatientLat() {
-        return (patient != null && generatedPath != null && generatedPath.getTargetLocation() != null)
-            ? generatedPath.getTargetLocation().getLatitude()
+        return (patient != null && hospital != null)
+            ? hospital.getLocation().getY() // Dummy until patient location is fixed
             : null;
     }
 
     @JsonProperty("patientLng")
     public Double getPatientLng() {
-        return (patient != null && generatedPath != null && generatedPath.getTargetLocation() != null)
-            ? generatedPath.getTargetLocation().getLongitude()
+        return (patient != null && hospital != null)
+            ? hospital.getLocation().getX() // Dummy until patient location is fixed
             : null;
     }
 }

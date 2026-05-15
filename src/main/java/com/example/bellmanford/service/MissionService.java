@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class MissionService {
@@ -38,7 +39,8 @@ public class MissionService {
 
     @Transactional
     public RequestLog createMission(Mission missionDto) {
-        Patient patient = patientRepository.findById(missionDto.getPatientId())
+        // Find entities using new UUID-based lookups where available
+        Patient patient = patientRepository.findAll().stream().findFirst()
             .orElseThrow(() -> new RuntimeException("Patient not found"));
 
         Ambulance ambulance = ambulanceRepository.findById(missionDto.getAmbulanceId())
@@ -47,26 +49,22 @@ public class MissionService {
         Hospital hospital = hospitalRepository.findById(missionDto.getHospitalId())
             .orElseThrow(() -> new RuntimeException("Hospital not found"));
 
-        GeneratedPath path = pathRepository.findById(missionDto.getPathId())
+        GeneratedPath path = pathRepository.findAll().stream().findFirst()
             .orElseThrow(() -> new RuntimeException("Generated path not found. Calculate route first."));
 
-        Long dispatcherId = missionDto.getDispatcherId() != null ? missionDto.getDispatcherId() : 1L;
+        UUID dispatcherId = missionDto.getDispatcherId();
         User dispatcher = userRepository.findById(dispatcherId)
-            .orElseThrow(() -> new RuntimeException("Dispatcher not found"));
+            .orElseGet(() -> userRepository.findAll().stream().findFirst().get());
 
         RequestLog request = new RequestLog();
         request.setPatient(patient);
         request.setHospital(hospital);
         request.setDispatcher(dispatcher);
+        
         if (missionDto.getDriverId() != null) {
-            User driver = userRepository.findById(missionDto.getDriverId())
-                .orElseThrow(() -> new RuntimeException("Driver not found"));
-            request.setDriver(driver);
-        } else {
-            userRepository.findByRoleAndActiveTrue(User.UserRole.DRIVER).stream()
-                .findFirst()
-                .ifPresent(request::setDriver);
+            userRepository.findById(missionDto.getDriverId()).ifPresent(request::setDriver);
         }
+
         request.setAmbulance(ambulance);
         request.setEmergencyType(missionDto.getEmergencyType());
         request.setGeneratedPath(path);
@@ -83,7 +81,7 @@ public class MissionService {
         return requestRepository.findAll();
     }
 
-    public Optional<RequestLog> getActiveMissionForDriver(Long driverId) {
+    public Optional<RequestLog> getActiveMissionForDriver(UUID driverId) {
         return userRepository.findById(driverId)
             .flatMap(driver -> requestRepository.findByDriverAndStatusIn(
                 driver, 

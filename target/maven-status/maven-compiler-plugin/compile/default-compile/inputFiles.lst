@@ -6,12 +6,14 @@ C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bell
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\controller\RouteController.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Ambulance.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Coordinate.java
+C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Edge.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\GeneratedPath.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\GraphEdge.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\GraphNode.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Hospital.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Location.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Mission.java
+C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Node.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\PathRequest.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\PathResponse.java
 C:\xampp\htdocs\ARA-Ambulance_Routing_Application\src\main\java\com\example\bellmanford\model\Patient.java

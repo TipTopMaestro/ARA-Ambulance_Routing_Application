@@ -1,59 +1,94 @@
 package com.example.bellmanford.model;
 
+import org.locationtech.jts.geom.Point;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.util.UUID;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "missions")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Mission {
-    private Long id;
-    private Long patientId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "mission_id")
+    private UUID missionId;
+
+    @Column(name = "dispatcher_id")
+    private UUID dispatcherId;
+
+    @Column(name = "driver_id")
+    private UUID driverId;
+
+    @Column(name = "ambulance_id")
+    private UUID ambulanceId;
+
+    @Column(name = "patient_name")
+    private String patientName;
+
+    @Column(name = "emergency_type")
     private String emergencyType;
 
-    private Long hospitalId;
-    private Long ambulanceId;
-    private Long dispatcherId;
-    private Long driverId;
-    private Long pathId;
+    @Column(name = "start_location", columnDefinition = "GEOMETRY")
+    private Point startLocation;
+
+    @Column(name = "end_location", columnDefinition = "GEOMETRY")
+    private Point endLocation;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "path_json", columnDefinition = "json")
+    private String pathJson;
+
+    @Column(name = "status")
     private String status;
 
+    @Column(name = "dispatch_time")
     private LocalDateTime dispatchTime;
+
+    @Column(name = "transport_time")
     private LocalDateTime transportTime;
+
+    @Column(name = "arrival_time")
     private LocalDateTime arrivalTime;
 
-    public Mission() {}
-
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getPatientId() { return patientId; }
-    public void setPatientId(Long patientId) { this.patientId = patientId; }
-
+    public UUID getMissionId() { return missionId; }
+    public UUID getDispatcherId() { return dispatcherId; }
+    public UUID getDriverId() { return driverId; }
+    public UUID getAmbulanceId() { return ambulanceId; }
+    public String getPatientName() { return patientName; }
     public String getEmergencyType() { return emergencyType; }
-    public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
-
-    public Long getHospitalId() { return hospitalId; }
-    public void setHospitalId(Long hospitalId) { this.hospitalId = hospitalId; }
-
-    public Long getAmbulanceId() { return ambulanceId; }
-    public void setAmbulanceId(Long ambulanceId) { this.ambulanceId = ambulanceId; }
-
-    public Long getDispatcherId() { return dispatcherId; }
-    public void setDispatcherId(Long dispatcherId) { this.dispatcherId = dispatcherId; }
-
-    public Long getDriverId() { return driverId; }
-    public void setDriverId(Long driverId) { this.driverId = driverId; }
-
-    public Long getPathId() { return pathId; }
-    public void setPathId(Long pathId) { this.pathId = pathId; }
-
+    public Point getStartLocation() { return startLocation; }
+    public Point getEndLocation() { return endLocation; }
+    public String getPathJson() { return pathJson; }
     public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
     public LocalDateTime getDispatchTime() { return dispatchTime; }
-    public void setDispatchTime(LocalDateTime dispatchTime) { this.dispatchTime = dispatchTime; }
-
     public LocalDateTime getTransportTime() { return transportTime; }
-    public void setTransportTime(LocalDateTime transportTime) { this.transportTime = transportTime; }
-
     public LocalDateTime getArrivalTime() { return arrivalTime; }
+    
+    // Compatibility setters
+    public void setMissionId(UUID missionId) { this.missionId = missionId; }
+    public void setDispatcherId(UUID dispatcherId) { this.dispatcherId = dispatcherId; }
+    public void setDriverId(UUID driverId) { this.driverId = driverId; }
+    public void setAmbulanceId(UUID ambulanceId) { this.ambulanceId = ambulanceId; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
+    public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
+    public void setStartLocation(Point startLocation) { this.startLocation = startLocation; }
+    public void setEndLocation(Point endLocation) { this.endLocation = endLocation; }
+    public void setPathJson(String pathJson) { this.pathJson = pathJson; }
+    public void setStatus(String status) { this.status = status; }
+    public void setDispatchTime(LocalDateTime dispatchTime) { this.dispatchTime = dispatchTime; }
+    public void setTransportTime(LocalDateTime transportTime) { this.transportTime = transportTime; }
     public void setArrivalTime(LocalDateTime arrivalTime) { this.arrivalTime = arrivalTime; }
+
+    // Hacky bridge for old code
+    public UUID getPatientId() { return dispatcherId; } 
+    public java.util.UUID getHospitalId() { return ambulanceId; }
+    public Long getPathId() { return 0L; }
 }

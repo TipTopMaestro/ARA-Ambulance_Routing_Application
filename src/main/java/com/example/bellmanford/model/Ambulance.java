@@ -1,24 +1,15 @@
 package com.example.bellmanford.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.util.UUID;
 
 @Entity
 @Table(name = "ambulances")
 public class Ambulance {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = jakarta.persistence.FetchType.EAGER)
@@ -37,19 +28,17 @@ public class Ambulance {
     }
 
     public Ambulance(Hospital hospital, AmbulanceStatus status) {
-        
         this.hospital = hospital;
         this.status = status;
     }
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
-
 
     @com.fasterxml.jackson.annotation.JsonIgnore
     public Hospital getHospital() {
@@ -57,13 +46,13 @@ public class Ambulance {
     }
 
     @JsonProperty("hospitalId")
-    public Long getHospitalId() {
+    public java.util.UUID getHospitalId() {
         return hospital != null ? hospital.getId() : null;
     }
 
     @JsonProperty("hospitalOsmNodeId")
     public String getHospitalOsmNodeId() {
-        return hospital != null && hospital.getLocation() != null ? hospital.getLocation().getOsmNodeId() : null;
+        return null; 
     }
 
     public void setHospital(Hospital hospital) {

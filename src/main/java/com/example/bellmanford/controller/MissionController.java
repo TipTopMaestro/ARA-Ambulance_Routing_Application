@@ -31,7 +31,7 @@ public class MissionController {
     }
 
     @GetMapping("/active/{driverId}")
-    public ResponseEntity<RequestLog> getActiveMission(@PathVariable Long driverId) {
+    public ResponseEntity<RequestLog> getActiveMission(@PathVariable java.util.UUID driverId) {
         return missionService.getActiveMissionForDriver(driverId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

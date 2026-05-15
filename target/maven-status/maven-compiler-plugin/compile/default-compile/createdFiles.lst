@@ -9,6 +9,7 @@ com\example\bellmanford\model\Mission.class
 com\example\bellmanford\repository\HospitalRepository.class
 com\example\bellmanford\controller\AmbulanceController.class
 com\example\bellmanford\repository\GeneratedPathRepository.class
+com\example\bellmanford\model\Node.class
 com\example\bellmanford\model\Location$LocationType.class
 com\example\bellmanford\model\RouteStep.class
 com\example\bellmanford\BellmanFordAlgoApplication.class
@@ -21,6 +22,7 @@ com\example\bellmanford\model\RequestLog$RequestStatus.class
 com\example\bellmanford\model\Coordinate.class
 com\example\bellmanford\model\PathResponse.class
 com\example\bellmanford\repository\LocationRepository.class
+com\example\bellmanford\model\Edge.class
 com\example\bellmanford\controller\MissionController.class
 com\example\bellmanford\repository\UserRepository.class
 com\example\bellmanford\model\User.class
