@@ -4,12 +4,12 @@
       <img src="/src/assets/ARA_logo.svg" alt="ARA Logo" class="logo">
     </div>
     <div class="nav-links">
-      <router-link to="/" class="nav-link">Dashboard</router-link>
+      <router-link to="/driver" class="nav-link">Dashboard</router-link>
       <router-link to="/logs" class="nav-link">Mission Logs</router-link>
     </div>
     <div class="nav-user">
       <div class="dropdown" @click="toggleDropdown">
-        <span class="username">{{ user?.username }}</span>
+        <span class="username">{{ displayName }}</span>
         <div v-if="showDropdown" class="dropdown-menu">
           <router-link to="/profile" class="dropdown-item">Edit Profile</router-link>
           <button @click="logout" class="dropdown-item logout-btn">Logout</button>
@@ -20,10 +20,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
 
 const { user, logout } = useAuth()
+const displayName = computed(() => {
+  return user.value?.username ? user.value.username.charAt(0).toUpperCase() + user.value.username.slice(1) : ''
+})
 const showDropdown = ref(false)
 
 const toggleDropdown = (e) => {
@@ -86,9 +89,11 @@ onUnmounted(() => {
 
 .username {
   cursor: pointer;
-  padding: 0.5rem 1rem;
-  background-color: #374151;
-  border-radius: 0.5rem;
+  color: #ffffff;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  text-decoration: none;
 }
 
 .dropdown-menu {
@@ -123,7 +128,7 @@ onUnmounted(() => {
 }
 
 .logout-btn {
-  color: #ef4444;
+  color: #731111;
   border-top: 1px solid #e5e7eb;
 }
 </style>

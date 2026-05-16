@@ -5,7 +5,7 @@
 
     <!-- Login Container -->
     <div class="login-container">
-      
+
       <!-- Left Side -->
       <div class="left-panel">
         <div class="logo-wrapper">
@@ -14,8 +14,6 @@
             alt="ambulance"
             class="logo"
           />
-          <!-- <h3>Ambulance Routing</h3>
-          <p>Application</p> -->
         </div>
       </div>
 
@@ -24,19 +22,40 @@
         <h1>WELCOME</h1>
         <p class="subtitle">Log in to your account to continue</p>
 
-        <form class="login-form">
-          <div class="input-group">
-            <span class="icon">
-              <i class="fas fa-user"></i>
-            </span>
-            <input type="text" placeholder="username" />
+        <form class="login-form" @submit.prevent="handleSubmit">
+          <div v-if="error" class="error-message">
+            {{ error }}
           </div>
 
           <div class="input-group">
-            <span class="icon">
-              <i class="fas fa-lock"></i>
+            <span class="icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="7" r="4"></circle>
+                <path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path>
+              </svg>
             </span>
-            <input type="password" placeholder="password" />
+            <input type="text" placeholder="username" v-model="username" required />
+          </div>
+
+          <div class="input-group">
+            <span class="icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input :type="showPassword ? 'text' : 'password'" placeholder="password" v-model="password" required />
+            <span class="password-toggle" @click="showPassword = !showPassword" :title="showPassword ? 'Hide password' : 'Show password'">
+              <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3-11-8 1.01-2.66 2.79-4.85 4.94-6.19"></path>
+                <path d="M1 1l22 22"></path>
+              </svg>
+            </span>
           </div>
 
           <div class="forgot">
@@ -52,10 +71,42 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "LoginPage",
-};
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
+
+const username = ref('')
+const password = ref('')
+const showPassword = ref(false)
+const error = ref('')
+const router = useRouter()
+const { login } = useAuth()
+
+const handleSubmit = async () => {
+  error.value = ''
+  try {
+    const response = await fetch('http://localhost:8081/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.value, password: password.value }),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      login(data)
+      if (data.role === 'DISPATCHER') {
+        router.push('/dispatcher')
+      } else {
+        router.push('/driver')
+      }
+    } else {
+      error.value = 'Invalid username or password'
+    }
+  } catch (err) {
+    error.value = 'Connection error. Is the backend running?'
+  }
+}
 </script>
 
 <style scoped>
@@ -153,6 +204,23 @@ export default {
   width: 100%;
 }
 
+.icon {
+  color: gray;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.icon {
+  filter: grayscale(100%);
+}
+
+.error-message {
+  color: #731111;
+  font-size: 12px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
 .input-group {
   width: 100%;
   height: 36px;
@@ -165,16 +233,24 @@ export default {
   background: white;
 }
 
-.icon i {
-  color: #8c8c8c;
-  font-size: 13px;
-}
-
 .input-group input {
   border: none;
   outline: none;
-  width: 100%;
+  flex: 1;
   background: transparent;
+  font-size: 14px;
+}
+
+.password-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  margin-left: 8px;
+  color: #777;
+  cursor: pointer;
+}
+.password-toggle i {
   font-size: 14px;
 }
 
@@ -228,41 +304,3 @@ export default {
   }
 }
 </style>
-
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
-
-
-
-const username = ref('')
-const password = ref('')
-const error = ref('')
-const router = useRouter()
-const { login } = useAuth()
-
-const handleSubmit = async () => {
-  try {
-    const response = await fetch('http://localhost:8081/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.value, password: password.value }),
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      login(data)
-      if (data.role === 'DISPATCHER') {
-        router.push('/dispatcher')
-      } else {
-        router.push('/driver')
-      }
-    } else {
-      error.value = 'Invalid username or password'
-    }
-  } catch (err) {
-    error.value = 'Connection error. Is the backend running?'
-  }
-}
-</script>
