@@ -54,14 +54,19 @@ onUnmounted(() => {
   color: white;
   height: 60px;
 }
-.logo{
-  width:25% ;
-  height:25% ;
-}
-.nav-brand h1 {
+
+.nav-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   font-size: 1.25rem;
   color: #fff;
   margin: 0;
+}
+
+.logo{
+  width: 25%;
+  height: 25%;
 }
 
 .nav-links {
@@ -73,11 +78,20 @@ onUnmounted(() => {
   color: #d1d5db;
   text-decoration: none;
   font-weight: 500;
+  display: inline-block;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.nav-link:hover {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
 .nav-link.router-link-active {
   color: #fff;
-  border-bottom: 2px solid #ef4444;
+  border-bottom: 2px solid #fff;
 }
 
 .nav-user {
@@ -87,8 +101,7 @@ onUnmounted(() => {
 .username {
   cursor: pointer;
   padding: 0.5rem 1rem;
-  background-color: #374151;
-  border-radius: 0.5rem;
+  background-color: transparent;
 }
 
 .dropdown-menu {
