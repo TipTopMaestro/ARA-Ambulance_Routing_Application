@@ -1,10 +1,11 @@
 <template>
   <nav class="top-nav">
     <div class="nav-brand">
-      <img src="/src/assets/ARA_logo.svg" alt="ARA Logo" class="logo">
+      <div><img src="/src/assets/logo.svg" alt="ARA Logo" class="logo"></div>
+      <div class="Logo-title">ARA</div>
     </div>
     <div class="nav-links">
-      <router-link to="/" class="nav-link">Dashboard</router-link>
+      <router-link to="/" class="nav-link" :class="{ 'router-link-active': isDashboardActive }">Dashboard</router-link>
       <router-link to="/logs" class="nav-link">Mission Logs</router-link>
     </div>
     <div class="nav-user">
@@ -20,11 +21,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const { user, logout } = useAuth()
+const route = useRoute()
 const showDropdown = ref(false)
+
+const isDashboardActive = computed(() => {
+  return route.path === '/' || route.path.startsWith('/dispatcher') || route.path.startsWith('/driver')
+})
 
 const toggleDropdown = (e) => {
   e.stopPropagation()
@@ -64,9 +71,24 @@ onUnmounted(() => {
   margin: 0;
 }
 
+.nav-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 1.25rem;
+  color: #fff;
+  margin: 0;
+}
+
 .logo{
-  width: 25%;
-  height: 25%;
+  width: 50px;
+  height: 50px;
+  display: block;
+}
+
+.Logo-title {
+  margin-left: 0.5rem;
+  font-weight: 800;
 }
 
 .nav-links {
