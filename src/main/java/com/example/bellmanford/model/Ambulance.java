@@ -51,7 +51,7 @@ public class Ambulance {
 
     @JsonProperty("hospitalOsmNodeId")
     public String getHospitalOsmNodeId() {
-        return null; 
+        return (hospital != null && hospital.getNode() != null) ? String.valueOf(hospital.getNode().getId()) : null; 
     }
 
     public void setHospital(Hospital hospital) {

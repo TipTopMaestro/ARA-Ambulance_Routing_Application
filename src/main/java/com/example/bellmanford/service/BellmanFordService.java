@@ -62,11 +62,11 @@ public class BellmanFordService {
                         relaxedAny = true;
                     }
                     
-                    // Only record significant relaxations to avoid bloat, 
-                    // or record all if we want full visualization. Let's record all relaxations.
-                    if (shouldRelax) {
+                    // Only record significant relaxations to avoid bloat.
+                    // We cap the total relaxation steps to prevent memory exhaustion in cycle scenarios.
+                    if (shouldRelax && relaxationSteps.size() < 5000) {
                         relaxationSteps.add(new com.example.bellmanford.model.RelaxationStep(
-                            i, edge.getSource(), edge.getTarget(), edge.getWeight(), newDistance, shouldRelax, new HashMap<>(distance)
+                            i, edge.getSource(), edge.getTarget(), edge.getWeight(), newDistance, shouldRelax, null
                         ));
                     }
                 }
@@ -114,8 +114,14 @@ public class BellmanFordService {
 
     private List<String> reconstructPath(Map<String, String> predecessor, String sourceId, String targetId) {
         List<String> path = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
         String current = targetId;
         while (current != null) {
+            if (visited.contains(current)) {
+                // Cycle detected in predecessor map! Break to avoid infinite loop.
+                break;
+            }
+            visited.add(current);
             path.add(0, current);
             if (current.equals(sourceId)) {
                 break;

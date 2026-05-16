@@ -1,6 +1,5 @@
 package com.example.bellmanford.model;
 
-import org.locationtech.jts.geom.Point;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,21 +12,22 @@ public class Hospital {
     @Column(nullable = false)
     private String name;
 
-    @Column(columnDefinition = "POINT", nullable = false)
-    private Point location;
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "osm_node_id", nullable = false)
+    private Node node;
 
     public Hospital() {}
 
-    public Hospital(Long id, String name, Point location) {
+    public Hospital(Long id, String name, Node node) {
         this.id = id;
         this.name = name;
-        this.location = location;
+        this.node = node;
     }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public Point getLocation() { return location; }
-    public void setLocation(Point location) { this.location = location; }
+    public Node getNode() { return node; }
+    public void setNode(Node node) { this.node = node; }
 }

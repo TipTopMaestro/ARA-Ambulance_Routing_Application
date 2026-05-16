@@ -237,34 +237,13 @@ const visualizeAlgorithm = async (steps) => {
 const handleDispatch = async () => {
   if (!selectedAmbulance.value || !routeData.value) return
 
-  if (!routeData.value.pathId) {
-    systemLog.value = 'Route was calculated but not saved. Generate the path again.'
-    return
-  }
-
-  const patientRes = await fetch('http://localhost:8081/api/patients', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name: patientName.value,
-      emergencyType: emergencyType.value,
-    }),
-  })
-
-  if (!patientRes.ok) {
-    systemLog.value = 'Patient record could not be saved'
-    return
-  }
-
-  const patient = await patientRes.json()
   const mission = {
-    patientId: patient.id,
+    patientName: patientName.value,
     emergencyType: emergencyType.value,
-    hospitalId: selectedHospitalId.value || ambulances.value.find(a => a.id === selectedAmbulance.value)?.hospitalId,
-    ambulanceId: selectedAmbulance.value,
-    dispatcherId: user.value?.id || 1,
+    ambulance: { id: selectedAmbulance.value },
+    dispatcher: { id: user.value?.id || 1 },
     status: 'DISPATCHED',
-    pathId: routeData.value.pathId
+    pathJson: JSON.stringify(routeData.value.coordinates)
   }
 
   const res = await fetch('http://localhost:8081/api/missions', {
@@ -277,6 +256,8 @@ const handleDispatch = async () => {
     systemLog.value = 'Mission dispatched successfully!'
     resetForm()
     fetchAmbulances()
+  } else {
+    systemLog.value = 'Mission dispatch failed'
   }
 }
 

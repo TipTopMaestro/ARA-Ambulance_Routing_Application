@@ -24,14 +24,11 @@ public class RouteController {
 
     private final BellmanFordService bellmanFordService;
     private final MockDatabaseService databaseService;
-    private final ObjectMapper objectMapper;
 
     public RouteController(BellmanFordService bellmanFordService, 
-                           MockDatabaseService databaseService,
-                           ObjectMapper objectMapper) {
+                           MockDatabaseService databaseService) {
         this.bellmanFordService = bellmanFordService;
         this.databaseService = databaseService;
-        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/path")

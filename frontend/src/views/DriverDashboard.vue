@@ -57,7 +57,7 @@
       <Map 
         :allNodes="allNodes" 
         :pathCoordinates="routeCoordinates"
-        :selectedSource="activeMission?.hospitalOsmNodeId"
+        :selectedSource="activeMission?.ambulance?.hospitalOsmNodeId"
         :selectedDestination="destinationId"
         :onNodeClick="() => {}"
       />
@@ -109,7 +109,7 @@ const fetchActiveMission = async () => {
 
 const updateStatus = async (newStatus) => {
   if (!activeMission.value) return
-  const res = await fetch(`http://localhost:8081/api/missions/${activeMission.value.id}/status`, {
+  const res = await fetch(`http://localhost:8081/api/missions/${activeMission.value.missionId}/status`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: newStatus }),
@@ -120,9 +120,9 @@ const updateStatus = async (newStatus) => {
 }
 
 const routeCoordinates = computed(() => {
-  if (!activeMission.value || !activeMission.value.routeCoordinatesJson) return null
+  if (!activeMission.value || !activeMission.value.pathJson) return null
   try {
-    return JSON.parse(activeMission.value.routeCoordinatesJson)
+    return JSON.parse(activeMission.value.pathJson)
   } catch (e) {
     console.error("Failed to parse route coordinates", e)
     return null
@@ -130,7 +130,16 @@ const routeCoordinates = computed(() => {
 })
 
 const destinationId = computed(() => {
-  if (!activeMission.value) return null
-  return allNodes.value.find(n => n.latitude === activeMission.value.patientLat && n.longitude === activeMission.value.patientLng)?.id
+  if (!activeMission.value || !activeMission.value.pathJson) return null
+  try {
+    const coords = JSON.parse(activeMission.value.pathJson)
+    if (coords.length > 0) {
+      const last = coords[coords.length - 1]
+      return allNodes.value.find(n => Math.abs(n.latitude - last.lat) < 0.0001 && Math.abs(n.longitude - last.lng) < 0.0001)?.id
+    }
+  } catch (e) {
+    return null
+  }
+  return null
 })
 </script>

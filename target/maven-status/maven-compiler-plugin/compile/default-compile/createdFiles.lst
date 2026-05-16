@@ -16,6 +16,7 @@ com\example\bellmanford\service\BellmanFordService.class
 com\example\bellmanford\model\Coordinate.class
 com\example\bellmanford\model\PathResponse.class
 com\example\bellmanford\model\Edge.class
+com\example\bellmanford\repository\NodeRepository.class
 com\example\bellmanford\controller\MissionController.class
 com\example\bellmanford\repository\UserRepository.class
 com\example\bellmanford\model\User.class
