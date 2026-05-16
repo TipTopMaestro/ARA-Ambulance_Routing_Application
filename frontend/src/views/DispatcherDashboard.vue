@@ -8,7 +8,10 @@
           <h2 class="panel-title">Emergency Details</h2>
         </div>
         <div class="reset-container">
-          <button @click="resetForm" class="reset-btn">Reset</button>
+          <button @click="resetForm" class="reset-btn">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            Reset
+          </button>
         </div>
       </div>
       <div class="form-group">
@@ -24,12 +27,15 @@
       <div class="form-group">
         <label class="form-label">Patient Location:</label>
 
-        <input
-          v-model="destinationId"
-          list="locationSuggestions"
-          class="form-select"
-          placeholder="Select, click map, or type location"
-        />
+        <div class="form-select-wrapper">
+          <input
+            v-model="destinationId"
+            list="locationSuggestions"
+            class="form-select select-like-input"
+            placeholder="Select, click map, or type location"
+          />
+          <span class="select-chevron" aria-hidden="true"></span>
+        </div>
 
         <datalist id="locationSuggestions">
           <option
@@ -115,7 +121,9 @@
     <!-- Right Panel: Fleet Status & System Status -->
     <div class="right-panel">
       <div class="action-panel">
-        <label class="form-label">Current Action: {{ currentAction }}...</label>
+        <label class="form-label">Current Action: 
+          <span class="current-action-value">{{ currentAction }}...</span>
+        </label>
       </div>
       <!-- Fleet Status Card -->
       <div class="fleet-status">
@@ -450,18 +458,20 @@ const resetForm = () => {
 
 .reset-container {
   display: flex;
+  padding: 0.1rem;
   align-items: center;
   margin-bottom: 1.5rem;
+  background-color: #374151;
+  border-radius: 10px;
 }
 
 .reset-btn {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.75rem;
+  padding: 0.4rem;
   background-color: transparent;
-  color: #374151; 
+  font-size: 0.75rem;
+  color: #ffffff; 
   cursor: pointer;
   font-weight: 600;
-  border: 1px solid #d1d5db; 
 }
 
 /* Form Elements */
@@ -483,19 +493,37 @@ const resetForm = () => {
 .form-input,
 .form-select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   font-family: inherit;
   box-sizing: border-box;
   background-color: white;
+  transition: all 0.2s ease;
+}
+
+.form-input:hover,
+.form-select:hover {
+  border-color: #9ca3af;
+  background-color: #fafbfc;
 }
 
 .form-input:focus,
 .form-select:focus {
   outline: none;
   border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background-color: white;
+}
+
+select.form-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
 }
 
 /* Buttons */
@@ -536,7 +564,7 @@ const resetForm = () => {
   background-color: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  padding: 1rem;
+  padding: 0.8rem;
 }
 
 .eta-title {
@@ -547,7 +575,7 @@ const resetForm = () => {
 }
 
 .eta-item {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .eta-label {
@@ -602,6 +630,10 @@ const resetForm = () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.current-action-value {
+  font-weight: 400;
 }
 
 /* Fleet Status */
