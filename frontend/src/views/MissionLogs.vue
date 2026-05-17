@@ -1,7 +1,8 @@
 <template>
   <div class="mission-logs">
-    <h2>Mission Logs</h2>
+    
     <div class="card">
+      <h2>Mission Logs</h2>
       <table>
         <thead>
           <tr>
@@ -47,13 +48,12 @@ const formatDate = (dateStr) => {
 
 <style scoped>
 .mission-logs {
-  padding: 2rem;
+  padding: 1rem;
 }
 .card {
-  background: white;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 10px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
 }
 table {
   width: 100%;
