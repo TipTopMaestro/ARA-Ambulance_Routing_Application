@@ -158,7 +158,7 @@ onUnmounted(() => {
 }
 
 .logout-btn {
-  color: #ef4444;
+  color: #731111;
   border-top: 1px solid #e5e7eb;
 }
 </style>

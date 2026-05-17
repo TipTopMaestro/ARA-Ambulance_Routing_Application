@@ -7,5 +7,6 @@
 import TopNav from './components/TopNav.vue'
 import { useAuth } from './composables/useAuth'
 
+
 const { user } = useAuth()
 </script>
