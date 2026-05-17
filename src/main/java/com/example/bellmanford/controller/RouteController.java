@@ -25,61 +25,17 @@ public class RouteController {
     private final BellmanFordService bellmanFordService;
     private final MockDatabaseService databaseService;
 
-    private final com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository;
-    private final com.example.bellmanford.repository.LocationRepository locationRepository;
-    private final ObjectMapper objectMapper;
-
     public RouteController(BellmanFordService bellmanFordService, 
-                           MockDatabaseService databaseService,
-                           com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository,
-                           com.example.bellmanford.repository.LocationRepository locationRepository,
-                           ObjectMapper objectMapper) {
+                           MockDatabaseService databaseService) {
         this.bellmanFordService = bellmanFordService;
         this.databaseService = databaseService;
-        this.generatedPathRepository = generatedPathRepository;
-        this.locationRepository = locationRepository;
-        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/path")
     public ResponseEntity<PathResponse> findShortestPath(@RequestBody PathRequest request) {
         PathResponse response = bellmanFordService.calculateShortestPath(request.getSourceId(), request.getTargetId());
-        
-        // Log the path to the database
-        try {
-            com.example.bellmanford.model.Location source = locationRepository.findByOsmNodeId(request.getSourceId())
-                .orElseGet(() -> {
-                    GraphNode node = databaseService.getNode(request.getSourceId());
-                    if (node == null) return null;
-                    return locationRepository.save(new com.example.bellmanford.model.Location(
-                        request.getSourceId(), node.getName(), node.getLatitude(), node.getLongitude(), 
-                        com.example.bellmanford.model.Location.LocationType.NODE
-                    ));
-                });
-
-            com.example.bellmanford.model.Location target = locationRepository.findByOsmNodeId(request.getTargetId())
-                .orElseGet(() -> {
-                    GraphNode node = databaseService.getNode(request.getTargetId());
-                    if (node == null) return null;
-                    return locationRepository.save(new com.example.bellmanford.model.Location(
-                        request.getTargetId(), node.getName(), node.getLatitude(), node.getLongitude(), 
-                        com.example.bellmanford.model.Location.LocationType.NODE
-                    ));
-                });
-
-            if (source != null && target != null && !response.getPath().isEmpty()) {
-                com.example.bellmanford.model.GeneratedPath pathLog = new com.example.bellmanford.model.GeneratedPath();
-                pathLog.setSourceLocation(source);
-                pathLog.setTargetLocation(target);
-                pathLog.setEstimatedDistanceMeters(0.0); // Should be calculated if needed
-                pathLog.setEstimatedTimeSeconds(response.getEstimatedTime());
-                pathLog.setRouteJson(objectMapper.writeValueAsString(response.getCoordinates()));
-                response.setPathId(generatedPathRepository.save(pathLog).getId());
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to log path: " + e.getMessage());
-        }
-
+        // Path persistence logic removed as requested by cleanup of redundant models.
+        // Mission entity now handles path persistence via pathJson column.
         return ResponseEntity.ok(response);
     }
 
