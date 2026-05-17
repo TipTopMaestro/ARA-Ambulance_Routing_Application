@@ -10,13 +10,24 @@ import java.util.Random;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
 
 import com.example.bellmanford.model.GraphEdge;
 import com.example.bellmanford.model.GraphNode;
+import com.example.bellmanford.model.Hospital;
+import com.example.bellmanford.model.Ambulance;
+import com.example.bellmanford.model.User;
+import com.example.bellmanford.model.Node;
+import com.example.bellmanford.repository.UserRepository;
+import com.example.bellmanford.repository.AmbulanceRepository;
+import com.example.bellmanford.repository.HospitalRepository;
+import com.example.bellmanford.repository.NodeRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.PostConstruct;
+
 
 @Service
 public class MockDatabaseService {
@@ -24,22 +35,25 @@ public class MockDatabaseService {
     private final Map<String, GraphNode> nodes = new HashMap<>();
     private final List<GraphEdge> edges = new ArrayList<>();
     
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
     private final Random random = new Random();
+    private final GeometryFactory geometryFactory = new GeometryFactory();
 
-    private final com.example.bellmanford.repository.UserRepository userRepository;
-    private final com.example.bellmanford.repository.AmbulanceRepository ambulanceRepository;
-    private final com.example.bellmanford.repository.HospitalRepository hospitalRepository;
-    private final com.example.bellmanford.repository.LocationRepository locationRepository;
+    private final UserRepository userRepository;
+    private final AmbulanceRepository ambulanceRepository;
+    private final HospitalRepository hospitalRepository;
+    private final NodeRepository nodeRepository;
 
-    public MockDatabaseService(com.example.bellmanford.repository.UserRepository userRepository, 
-                               com.example.bellmanford.repository.AmbulanceRepository ambulanceRepository,
-                               com.example.bellmanford.repository.HospitalRepository hospitalRepository,
-                               com.example.bellmanford.repository.LocationRepository locationRepository) {
+    public MockDatabaseService(UserRepository userRepository, 
+                               AmbulanceRepository ambulanceRepository,
+                               HospitalRepository hospitalRepository,
+                               NodeRepository nodeRepository,
+                               ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.ambulanceRepository = ambulanceRepository;
         this.hospitalRepository = hospitalRepository;
-        this.locationRepository = locationRepository;
+        this.nodeRepository = nodeRepository;
+        this.objectMapper = objectMapper;
     }
 
     @PostConstruct
@@ -137,7 +151,10 @@ public class MockDatabaseService {
 
                                 edges.add(new GraphEdge(sourceId, targetId, finalWeight, 1.0));
                                 if (!oneway) {
-                                    edges.add(new GraphEdge(targetId, sourceId, finalWeight, 1.0));
+                                    // Prevent immediate negative 2-cycles by ensuring the reverse edge 
+                                    // stays positive if the forward edge was made negative.
+                                    double reverseWeight = (finalWeight < 0) ? baseTravelTime : finalWeight;
+                                    edges.add(new GraphEdge(targetId, sourceId, reverseWeight, 1.0));
                                 }
                                 
                                 // Reset for next segment
@@ -161,7 +178,7 @@ public class MockDatabaseService {
             addAlias("AMB_4", "1298161645", "Downtown Ambulance Stand");
 
             seedDatabase();
-            System.out.println("Loaded " + nodes.size() + " nodes and " + edges.size() + " edges from OSM.");
+            System.out.println("Mock Database Initialization complete. Loaded " + nodes.size() + " nodes and " + edges.size() + " edges.");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -170,51 +187,43 @@ public class MockDatabaseService {
 
     private void seedDatabase() {
         if (userRepository.count() == 0) {
-            userRepository.save(new com.example.bellmanford.model.User("dispatcher1", "password", com.example.bellmanford.model.User.UserRole.DISPATCHER));
-            userRepository.save(new com.example.bellmanford.model.User("driver1", "password", com.example.bellmanford.model.User.UserRole.DRIVER));
-            userRepository.save(new com.example.bellmanford.model.User("driver2", "password", com.example.bellmanford.model.User.UserRole.DRIVER));
-            System.out.println("Seeded initial users.");
+            userRepository.save(new User("dispatcher1", "password", User.UserRole.DISPATCHER));
+            userRepository.save(new User("driver1", "password", User.UserRole.DRIVER));
+            userRepository.save(new User("driver2", "password", User.UserRole.DRIVER));
         }
 
         if (hospitalRepository.count() == 0) {
-            createHospital("H1", "Panabo Polymedic Hospital");
-            createHospital("H2", "Good Shepherd Hospital");
-            createHospital("H3", "Rivera Medical Center");
-            System.out.println("Seeded initial hospitals.");
+            seedHospital(6051423911L, "Panabo Polymedic Hospital");
+            seedHospital(1621665249L, "Good Shepherd Hospital");
+            seedHospital(1621650390L, "Rivera Medical Center");
         }
 
         if (ambulanceRepository.count() == 0) {
-            seedAmbulance("H1");
-            seedAmbulance("H1");
-            seedAmbulance("H2");
-            seedAmbulance("H3");
-            System.out.println("Seeded initial ambulances.");
-        }
-    }
-
-    private void createHospital(String id, String name) {
-        GraphNode node = nodes.get(id);
-        if (node != null) {
-            com.example.bellmanford.model.Location location = new com.example.bellmanford.model.Location(
-                id, name, node.getLatitude(), node.getLongitude(), 
-                com.example.bellmanford.model.Location.LocationType.HOSPITAL
-            );
-            locationRepository.save(location);
-            hospitalRepository.save(new com.example.bellmanford.model.Hospital(location, name));
-        }
-    }
-
-    private void seedAmbulance(String hospAlias) {
-        hospitalRepository.findAll().stream()
-            .filter(h -> h.getName().equals(nodes.get(hospAlias).getName()))
-            .findFirst()
-            .ifPresent(h -> {
-                ambulanceRepository.save(new com.example.bellmanford.model.Ambulance(
-                    h, com.example.bellmanford.model.Ambulance.AmbulanceStatus.AVAILABLE
-                ));
+            hospitalRepository.findAll().forEach(h -> {
+                ambulanceRepository.save(new Ambulance(h, Ambulance.AmbulanceStatus.AVAILABLE));
+                ambulanceRepository.save(new Ambulance(h, Ambulance.AmbulanceStatus.AVAILABLE));
             });
+        }
     }
-    
+
+    private void seedHospital(Long osmId, String name) {
+        GraphNode graphNode = nodes.get(String.valueOf(osmId));
+        if (graphNode != null) {
+            // First create and save the Node entity
+            Node nodeEntity = nodeRepository.findById(osmId).orElseGet(() -> {
+                Node n = new Node();
+                n.setId(osmId);
+                n.setLocation(geometryFactory.createPoint(new Coordinate(graphNode.getLongitude(), graphNode.getLatitude())));
+                return nodeRepository.save(n);
+            });
+
+            Hospital h = new Hospital();
+            h.setName(name);
+            h.setNode(nodeEntity);
+            hospitalRepository.save(h);
+        }
+    }
+
     private void addAlias(String alias, String originalId, String aliasName) {
         GraphNode original = nodes.get(originalId);
         if (original != null) {
@@ -222,8 +231,6 @@ public class MockDatabaseService {
             aliasNode.setName(aliasName != null ? aliasName : original.getName());
             nodes.put(alias, aliasNode);
             
-            // Re-route edges pointing to/from original to also point to/from alias
-            // Actually, simpler to just add 0-weight edges between alias and original
             edges.add(new GraphEdge(alias, originalId, 0.0, 1.0));
             edges.add(new GraphEdge(originalId, alias, 0.0, 1.0));
         }
@@ -243,6 +250,17 @@ public class MockDatabaseService {
         return diff > (Math.PI / 12); // > 15 degrees
     }
 
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of the earth in km
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
     public List<GraphNode> getSignificantNodes() {
         Set<String> significantIds = new HashSet<>();
         for (GraphEdge edge : edges) {
@@ -257,18 +275,6 @@ public class MockDatabaseService {
             }
         }
         return result;
-    }
-
-    // Haversine formula
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371; // Radius of the earth in km
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
     }
 
     public Map<String, GraphNode> getNodes() {

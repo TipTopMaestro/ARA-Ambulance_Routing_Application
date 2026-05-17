@@ -1,15 +1,16 @@
 <template>
   <nav class="top-nav">
     <div class="nav-brand">
-      <img src="/src/assets/ARA_logo.svg" alt="ARA Logo" class="logo">
+      <div><img src="/src/assets/logo.svg" alt="ARA Logo" class="logo"></div>
+      <div class="Logo-title">ARA</div>
     </div>
     <div class="nav-links">
-      <router-link to="/driver" class="nav-link">Dashboard</router-link>
+      <router-link to="/" class="nav-link" :class="{ 'router-link-active': isDashboardActive }">Dashboard</router-link>
       <router-link to="/logs" class="nav-link">Mission Logs</router-link>
     </div>
     <div class="nav-user">
       <div class="dropdown" @click="toggleDropdown">
-        <span class="username">{{ displayName }}</span>
+        <span class="username">{{ user?.username }}</span>
         <div v-if="showDropdown" class="dropdown-menu">
           <router-link to="/profile" class="dropdown-item">Edit Profile</router-link>
           <button @click="logout" class="dropdown-item logout-btn">Logout</button>
@@ -20,14 +21,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 
 const { user, logout } = useAuth()
-const displayName = computed(() => {
-  return user.value?.username ? user.value.username.charAt(0).toUpperCase() + user.value.username.slice(1) : ''
-})
+const route = useRoute()
 const showDropdown = ref(false)
+
+const isDashboardActive = computed(() => {
+  return route.path === '/' || route.path.startsWith('/dispatcher') || route.path.startsWith('/driver')
+})
 
 const toggleDropdown = (e) => {
   e.stopPropagation()
@@ -57,14 +61,34 @@ onUnmounted(() => {
   color: white;
   height: 60px;
 }
-.logo{
-  width:25% ;
-  height:25% ;
-}
-.nav-brand h1 {
+
+.nav-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
   font-size: 1.25rem;
   color: #fff;
   margin: 0;
+}
+
+.nav-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 1.25rem;
+  color: #fff;
+  margin: 0;
+}
+
+.logo{
+  width: 50px;
+  height: 50px;
+  display: block;
+}
+
+.Logo-title {
+  margin-left: 0.5rem;
+  font-weight: 800;
 }
 
 .nav-links {
@@ -76,11 +100,20 @@ onUnmounted(() => {
   color: #d1d5db;
   text-decoration: none;
   font-weight: 500;
+  display: inline-block;
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.nav-link:hover {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
 .nav-link.router-link-active {
   color: #fff;
-  border-bottom: 2px solid #ef4444;
+  border-bottom: 2px solid #fff;
 }
 
 .nav-user {
@@ -89,11 +122,8 @@ onUnmounted(() => {
 
 .username {
   cursor: pointer;
-  color: #ffffff;
-  padding: 0;
-  background: none;
-  border-radius: 0;
-  text-decoration: none;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
 }
 
 .dropdown-menu {
