@@ -10,15 +10,18 @@ The Ambulance Routing Application (ARA) is a stateful, role-based system designe
 Located in `src/main/java/com/example/bellmanford/`
 *   **`/controller`**: REST API Endpoints.
     *   `AuthController`: Login and session validation.
-    *   `FleetController`: Monitoring ambulance status and hospital stations.
+    *   `AmbulanceController`: Monitoring ambulance status and hospital stations.
     *   `MissionController`: Managing the lifecycle of a dispatch mission.
     *   `RouteController`: Fetching map nodes and initiating path calculations.
+    *   `NodeController`: Manually managing custom nodes (locations) in the database.
 *   **`/service`**: Core Business Logic.
     *   `BellmanFordService`: The routing engine. Implements shortest-path logic, relaxation tracking for visualization, and negative cycle detection.
     *   `MissionService`: Orchestrates the transition from incident to active mission and log archival.
-    *   `MockDatabaseService`: Graph constructor. Parses OSM data, manages aliases (e.g., "H1"), seeds initial data, and injects random negative weights.
+    *   `OsmService`: Live data ingestion. Fetches road networks from the Overpass API using `out geom;`.
+    *   `GraphCacheService`: In-memory graph builder. Merges OSM data with manual nodes and coordinate-based custom shortcuts.
+    *   `DataSeeder`: Seeds initial users and hospitals into the database on first boot.
 *   **`/model`**: JPA Entities & DTOs.
-    *   `User`, `Ambulance`, `Hospital`, `Location`, `Patient`, `RequestLog`: Standardized relational entities persisted in MySQL.
+    *   `User`, `Ambulance`, `Hospital`, `ManualNode`, `CustomLogicalEdge`, `Mission`: Standardized relational entities persisted in MySQL.
     *   `GraphNode`, `GraphEdge`: In-memory representation of the city map.
     *   `RelaxationStep`, `PathResponse`: Data structures for frontend visualization.
 *   **`/repository`**: Spring Data JPA interfaces for MySQL access.
@@ -39,10 +42,12 @@ Located in `frontend/src/`
 ## 🧠 Core Logic & Algorithm
 
 ### 1. The Graph (Nodes & Edges)
-*   **Nodes:** Extracted from OpenStreetMap (OSM) JSON. Significant nodes (intersections, turns, hospitals) are converted into `GraphNode` objects.
+*   **Base Map:** Live road network data is pulled from OpenStreetMap via the Overpass API.
+*   **Nodes:** Intersection and endpoints are extracted as `GraphNode` objects.
+*   **Custom Nodes:** Admins can manually add `ManualNode` entries (e.g., specific landmarks), which are automatically "snapped" to the nearest road node.
 *   **Edges:** Road segments connecting nodes.
-    *   **Base Weights:** Calculated using the Haversine formula (distance) multiplied by a travel time constant.
-    *   **Negative Weights:** To test Bellman-Ford's robustness, 5% of edges are randomly assigned negative values (`-1.0` to `-6.0`), simulating high-priority corridors or simulated shortcuts.
+    *   **Base Weights:** Calculated using the Haversine formula (physical distance) multiplied by travel constants.
+    *   **Custom Shortcuts:** Admins can define `CustomLogicalEdge` entries between any two coordinates. These can have negative weights to represent high-priority corridors.
 
 ### 2. Bellman-Ford Routing
 Unlike Dijkstra, this implementation handles negative edge weights:

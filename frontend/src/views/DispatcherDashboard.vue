@@ -1,8 +1,11 @@
 <template>
-  <div class="dispatcher-dashboard"> 
+  <div class="dispatcher-dashboard" :class="{ 'left-collapsed': !isLeftPanelOpen, 'right-collapsed': !isRightPanelOpen, 'is-mobile': isMobile, 'no-transition': isInitialLoad }"> 
     
+    <!-- Backdrop for mobile drawers -->
+    <div v-if="isMobile && (isLeftPanelOpen || isRightPanelOpen)" class="drawer-backdrop" @click="closeDrawers"></div>
+
     <!-- Left Panel: Emergency Details Form -->
-    <div class="left-panel">
+    <div class="left-panel" :class="{ 'panel-open': isLeftPanelOpen }">
       <div class="card-header">
         <div class="panel-header">
           <h2 class="panel-title">Emergency Details</h2>
@@ -22,6 +25,16 @@
       <div class="form-group">
         <label class="form-label">Emergency Type:</label>
         <input type="text" v-model="emergencyType" placeholder="e.g. Cardiac Arrest, Trauma" class="form-input" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Source Hospital:</label>
+        <select v-model="selectedHospital" class="form-select">
+          <option value="">Select Hospital</option>
+          <option v-for="n in allNodes.filter(node => node.id.startsWith('H'))" :key="n.id" :value="n.id">
+            {{ n.name || n.id }}
+          </option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -60,7 +73,7 @@
 
       <button 
         @click="handleCalculateRoute" 
-        :disabled="!selectedAmbulance || !destinationId || loading"
+        :disabled="!selectedHospital || !destinationId || loading"
         class="btn-primary btn-large"
       >
         GENERATE ROUTE
@@ -77,13 +90,13 @@
           </div>
 
         <div class="eta-item">
-          <label class="eta-label">Assigned Hospital:</label>
+          <label class="eta-label">Starting From:</label>
           <div class="eta-hospital">
-            <div v-if="selectedAmbulance">
-              <div style="font-weight:600">{{ ambulances.find(a => a.id === selectedAmbulance)?.hospitalName || ambulances.find(a => a.id === selectedAmbulance)?.hospitalId }}</div>
+            <div v-if="selectedHospital">
+              <div style="font-weight:600">{{ allNodes.find(n => n.id === selectedHospital)?.name || selectedHospital }}</div>
             </div>
             <div v-else>
-              Not assigned
+              Not selected
             </div>
           </div>
         </div>
@@ -93,7 +106,7 @@
           <div class="eta-location">
             <div v-if="selectedNode">
               <div style="font-weight:600">{{ selectedNode.name || selectedNode.id }}</div>
-              <div style="font-size:0.85rem; color:#6b7280">{{ selectedNode.address || (selectedNode.lat && selectedNode.lon ? `Coords: ${selectedNode.lat}, ${selectedNode.lon}` : '') }}
+              <div style="font-size:0.85rem; color:#6b7280">{{ selectedNode.address || (selectedNode.latitude && selectedNode.longitude ? `Coords: ${selectedNode.latitude}, ${selectedNode.longitude}` : '') }}
               </div>
             </div>
             <div v-else>
@@ -112,14 +125,39 @@
         :selectedSource="selectedHospital"
         :selectedDestination="destinationId"
         :allEdges="allEdges"
+        :staticEdges="staticEdges"
+        :showGraphEdges="showGraphEdges"
+        :showNodeIds="showNodeIds"
+        :viewCenter="mapCenter"
+        :viewZoom="mapZoom"
+        @view-changed="handleMapViewChanged"
         :currentTraversedNode="currentTraversedNode"
         :currentRelaxedEdge="currentRelaxedEdge"
         :visitedNodes="visitedNodes"
       />
     </div>
 
+    <!-- Panel Toggles (Moved to dashboard root) -->
+    <button 
+      @click="toggleLeftPanel" 
+      class="panel-toggle left-toggle" 
+      :class="{ 'is-open': isLeftPanelOpen }"
+      :title="isLeftPanelOpen ? 'Collapse Details' : 'Expand Details'"
+    >
+      <i class="bi" :class="isLeftPanelOpen ? 'bi-chevron-left' : 'bi-chevron-right'"></i>
+    </button>
+
+    <button 
+      @click="toggleRightPanel" 
+      class="panel-toggle right-toggle" 
+      :class="{ 'is-open': isRightPanelOpen }"
+      :title="isRightPanelOpen ? 'Hide Status' : 'Show Status'"
+    >
+      <i class="bi" :class="isRightPanelOpen ? 'bi-chevron-right' : 'bi-chevron-left'"></i>
+    </button>
+
     <!-- Right Panel: Fleet Status & System Status -->
-    <div class="right-panel">
+    <div class="right-panel" :class="{ 'panel-open': isRightPanelOpen }">
       <div class="action-panel">
         <label class="form-label">Current Action: 
           <span class="current-action-value">{{ currentAction }}...</span>
@@ -160,6 +198,27 @@
         </div>
       </div>
 
+      <!-- Map Layers Card -->
+      <div class="system-status" style="margin-bottom: 0;">
+        <h3 class="panel-subtitle">Map Layers</h3>
+        <div class="status-items">
+          <div class="status-item">
+            <span class="status-label">Show Graph Network:</span>
+            <label class="switch">
+              <input type="checkbox" v-model="showGraphEdges">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Show Node IDs:</span>
+            <label class="switch">
+              <input type="checkbox" v-model="showNodeIds">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <!-- System Status Card -->
       <div class="system-status">
         <h3 class="panel-subtitle">System status</h3>
@@ -188,6 +247,94 @@ import { useAuth } from '../composables/useAuth'
 const { user } = useAuth()
 const allNodes = ref([])
 const allEdges = ref([])
+const staticEdges = ref([])
+const showGraphEdges = ref(true)
+const showNodeIds = ref(false)
+const mapCenter = ref([7.3081, 125.6841])
+const mapZoom = ref(14)
+
+// Layout state for responsiveness and collapsible panels
+const isMobile = ref(false)
+const isLeftPanelOpen = ref(true)
+const isRightPanelOpen = ref(true)
+const isInitialLoad = ref(true)
+
+const loadPanelState = () => {
+  const leftSaved = localStorage.getItem('ara_left_panel_open')
+  const rightSaved = localStorage.getItem('ara_right_panel_open')
+  const graphSaved = localStorage.getItem('ara_show_graph_edges')
+  const nodeIdsSaved = localStorage.getItem('ara_show_node_ids')
+  const mapCenterSaved = localStorage.getItem('ara_map_center')
+  const mapZoomSaved = localStorage.getItem('ara_map_zoom')
+  
+  if (isMobile.value) {
+    isLeftPanelOpen.value = false
+    isRightPanelOpen.value = false
+  } else {
+    isLeftPanelOpen.value = leftSaved === null ? true : leftSaved === 'true'
+    isRightPanelOpen.value = rightSaved === null ? true : rightSaved === 'true'
+  }
+
+  showGraphEdges.value = graphSaved === null ? true : graphSaved === 'true'
+  showNodeIds.value = nodeIdsSaved === null ? false : nodeIdsSaved === 'true'
+  
+  if (mapCenterSaved) mapCenter.value = JSON.parse(mapCenterSaved)
+  if (mapZoomSaved) mapZoom.value = parseInt(mapZoomSaved)
+}
+
+const savePanelState = () => {
+  if (!isMobile.value) {
+    localStorage.setItem('ara_left_panel_open', isLeftPanelOpen.value)
+    localStorage.setItem('ara_right_panel_open', isRightPanelOpen.value)
+  }
+}
+
+const saveMapLayerState = () => {
+  localStorage.setItem('ara_show_graph_edges', showGraphEdges.value)
+  localStorage.setItem('ara_show_node_ids', showNodeIds.value)
+}
+
+const handleMapViewChanged = (view) => {
+  mapCenter.value = view.center
+  mapZoom.value = view.zoom
+  localStorage.setItem('ara_map_center', JSON.stringify(view.center))
+  localStorage.setItem('ara_map_zoom', view.zoom)
+}
+
+watch(showGraphEdges, saveMapLayerState)
+watch(showNodeIds, saveMapLayerState)
+
+const checkScreenSize = () => {
+  isMobile.value = window.innerWidth <= 1024
+  loadPanelState()
+}
+
+// Initialize immediately in setup to prevent animation on reload
+if (typeof window !== 'undefined') {
+  checkScreenSize()
+}
+
+const toggleLeftPanel = () => {
+  isLeftPanelOpen.value = !isLeftPanelOpen.value
+  if (isMobile.value && isLeftPanelOpen.value) {
+    isRightPanelOpen.value = false // Close other panel on mobile
+  }
+  savePanelState()
+}
+
+const toggleRightPanel = () => {
+  isRightPanelOpen.value = !isRightPanelOpen.value
+  if (isMobile.value && isRightPanelOpen.value) {
+    isLeftPanelOpen.value = false // Close other panel on mobile
+  }
+  savePanelState()
+}
+
+const closeDrawers = () => {
+  isLeftPanelOpen.value = false
+  isRightPanelOpen.value = false
+}
+
 // Mockup units (used until backend provides real data)
 const ambulances = ref([
   { id: 'AMB01', status: 'AVAILABLE', hospitalId: 'RMCI', hospitalName: 'RMCI Medical Center', hospitalOsmNodeId: 'H1' },
@@ -211,13 +358,11 @@ const selectedNode = computed(() => {
 // when dispatcher selects an ambulance, auto-fill assigned hospital info
 watch(selectedAmbulance, (val) => {
   if (!val) {
-    selectedHospital.value = ''
     selectedHospitalId.value = null
     return
   }
   const amb = ambulances.value.find(a => a.id === val)
   if (amb) {
-    selectedHospital.value = amb.hospitalOsmNodeId || ''
     selectedHospitalId.value = amb.hospitalId || null
   }
 })
@@ -249,7 +394,14 @@ const visualizationActive = ref(false)
 let pollInterval = null
 
 onMounted(() => {
+  // Ensure the no-transition class is removed after the first render
+  setTimeout(() => {
+    isInitialLoad.value = false
+  }, 100)
+  
+  window.addEventListener('resize', checkScreenSize)
   fetchNodes()
+  fetchEdges()
   fetchAmbulances()
   pollInterval = setInterval(() => {
     fetchAmbulances()
@@ -257,6 +409,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
   if (pollInterval) clearInterval(pollInterval)
 })
 
@@ -265,6 +418,13 @@ const fetchNodes = async () => {
     const res = await fetch('http://localhost:8081/api/nodes')
     if (res.ok) allNodes.value = await res.json()
   } catch (e) { console.error("Failed to fetch nodes", e) }
+}
+
+const fetchEdges = async () => {
+  try {
+    const res = await fetch('http://localhost:8081/api/edges')
+    if (res.ok) staticEdges.value = await res.json()
+  } catch (e) { console.error("Failed to fetch edges", e) }
 }
 
 const fetchAmbulances = async () => {
@@ -284,21 +444,12 @@ const handleNodeClick = (id) => {
 }
 
 const handleCalculateRoute = async () => {
-  if (!selectedAmbulance.value || !destinationId.value) {
-    systemLog.value = 'Please select an ambulance and destination location.'
+  if (!selectedHospital.value || !destinationId.value) {
+    systemLog.value = 'Please select a source hospital and destination location.'
     return
   }
 
-  // Find source hospital from selected ambulance or use default H1 if none selected
-  let sourceId = 'H1'
-  if (selectedAmbulance.value) {
-    const amb = ambulances.value.find(a => a.id === selectedAmbulance.value)
-    if (amb) {
-      sourceId = amb.hospitalOsmNodeId
-      selectedHospitalId.value = amb.hospitalId
-    }
-  }
-  selectedHospital.value = sourceId
+  const sourceId = selectedHospital.value
 
   loading.value = true
   routeData.value = null
@@ -391,6 +542,11 @@ const resetForm = () => {
 </script>
 
 <style scoped>
+.dispatcher-dashboard.no-transition,
+.dispatcher-dashboard.no-transition * {
+  transition: none !important;
+}
+
 /* Main Container */
 .dispatcher-dashboard {
   padding: 1rem;
@@ -399,6 +555,20 @@ const resetForm = () => {
   gap: 1rem;
   height: calc(100vh - 80px);
   background-color: #f3f4f6;
+  transition: grid-template-columns 0.3s ease;
+  position: relative;
+}
+
+.dispatcher-dashboard.left-collapsed {
+  grid-template-columns: 0px 1fr 300px;
+}
+
+.dispatcher-dashboard.right-collapsed {
+  grid-template-columns: 350px 1fr 0px;
+}
+
+.dispatcher-dashboard.left-collapsed.right-collapsed {
+  grid-template-columns: 0px 1fr 0px;
 }
 
 /* Card Base Style */
@@ -416,6 +586,14 @@ const resetForm = () => {
 .left-panel {
   overflow-y: auto;
   padding: 1.5rem;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 10;
+}
+
+.left-collapsed .left-panel {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .card-header {
@@ -525,12 +703,6 @@ select.form-select {
   margin-bottom: 1rem;
 }
 
-.btn-secondary {
-  padding: 0.6rem;
-  font-size: 0.9rem;
-  margin-bottom: 0;
-}
-
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9;
 }
@@ -593,6 +765,56 @@ select.form-select {
   padding: 0;
   position: relative;
   overflow: hidden;
+  z-index: 1;
+}
+
+/* Panel Toggles */
+.panel-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2000; /* Higher than panels */
+  transition: all 0.3s ease;
+  padding: 0;
+  border-radius: 0;
+}
+
+.panel-toggle:hover {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.left-toggle {
+  left: 350px; /* Positioned at the edge of the left panel */
+  border-left: none;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.left-collapsed .left-toggle {
+  left: 0;
+}
+
+.right-toggle {
+  right: 300px; /* Positioned at the edge of the right panel */
+  border-right: none;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+}
+
+.right-collapsed .right-toggle {
+  right: 0;
 }
 
 /* Right Panel */
@@ -601,6 +823,14 @@ select.form-select {
   flex-direction: column;
   gap: 1rem;
   overflow: hidden;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 10;
+}
+
+.right-collapsed .right-panel {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .action-panel {
@@ -724,5 +954,145 @@ select.form-select {
 
 .status-available-count {
   color: #10b981;
+}
+
+/* Toggle Switch CSS */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #22c55e;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #22c55e;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(20px);
+  -ms-transform: translateX(20px);
+  transform: translateX(20px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Mobile Responsiveness */
+.drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+@media (max-width: 1024px) {
+  .dispatcher-dashboard {
+    display: block; /* Disable grid */
+    padding: 0;
+    height: calc(100vh - 60px); /* Adjust for navbar */
+    overflow: hidden;
+  }
+
+  .map-panel {
+    height: 100%;
+    width: 100%;
+  }
+
+  .left-panel, .right-panel {
+    position: fixed;
+    top: 60px; /* Below navbar */
+    bottom: 0;
+    width: 320px;
+    max-width: 85%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .left-panel {
+    left: 0;
+    transform: translateX(-100%);
+    opacity: 1; /* Keep opacity for drawer feel */
+  }
+
+  .right-panel {
+    right: 0;
+    transform: translateX(100%);
+    opacity: 1;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+  }
+
+  .left-panel.panel-open,
+  .right-panel.panel-open {
+    transform: translateX(0);
+  }
+
+  /* Adjust toggles for mobile */
+  .panel-toggle {
+    width: 32px;
+    height: 64px;
+    background-color: #ef4444; /* Make them more visible on mobile */
+    color: white;
+    border: none;
+  }
+
+  .left-toggle {
+    top: 20%;
+  }
+
+  .right-toggle {
+    top: 50%;
+  }
+}
+
+@media (max-width: 640px) {
+  .left-panel, .right-panel {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 </style>

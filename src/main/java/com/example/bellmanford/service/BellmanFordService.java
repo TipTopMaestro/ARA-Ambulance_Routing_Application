@@ -18,15 +18,15 @@ import com.example.bellmanford.model.RouteStep;
 @Service
 public class BellmanFordService {
 
-    private final MockDatabaseService databaseService;
+    private final StaticGraphService graphService;
 
-    public BellmanFordService(MockDatabaseService databaseService) {
-        this.databaseService = databaseService;
+    public BellmanFordService(StaticGraphService graphService) {
+        this.graphService = graphService;
     }
 
     public PathResponse calculateShortestPath(String sourceId, String targetId) {
-        List<GraphEdge> edges = databaseService.getEdges();
-        Map<String, GraphNode> nodes = databaseService.getNodes();
+        List<GraphEdge> edges = graphService.getEdges();
+        Map<String, GraphNode> nodes = graphService.getNodes();
 
         Set<String> vertices = new HashSet<>();
         for (GraphEdge edge : edges) {

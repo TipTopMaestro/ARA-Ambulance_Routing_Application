@@ -3,8 +3,8 @@ package com.example.bellmanford;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.n52.jackson.datatype.jts.JtsModule;
 
 @SpringBootApplication
 public class BellmanFordAlgoApplication {
@@ -14,6 +14,8 @@ public class BellmanFordAlgoApplication {
 
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JtsModule());
+        return mapper;
     }
 }
