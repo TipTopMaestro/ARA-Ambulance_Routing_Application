@@ -90,8 +90,9 @@ const updateStaticLayers = () => {
       if (source && target) {
         const isNegative = edge.weight < 0
         const line = L.polyline([[source.latitude, source.longitude], [target.latitude, target.longitude]], {
-          color: isNegative ? '#ef4444' : '#009c02',
+          color: isNegative ? '#ef4444' : '#64748b', // Red for negative, Grey for normal
           weight: isNegative ? 5 : 3,
+          dashArray: isNegative ? '5, 10' : null, // Dotted if negative
           opacity: 0.6
         })
         line.bindTooltip(`${isNegative ? 'Priority' : 'Edge'}: ${edge.weight?.toFixed(2)}`, { sticky: true })

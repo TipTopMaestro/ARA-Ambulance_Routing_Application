@@ -393,14 +393,14 @@ const visualizationActive = ref(false)
 
 let pollInterval = null
 
-onMounted(() => {
+onMounted(async () => {
   // Ensure the no-transition class is removed after the first render
   setTimeout(() => {
     isInitialLoad.value = false
   }, 100)
   
   window.addEventListener('resize', checkScreenSize)
-  fetchNodes()
+  await fetchNodes() // Wait for nodes to load first
   fetchEdges()
   fetchAmbulances()
   pollInterval = setInterval(() => {
@@ -423,8 +423,49 @@ const fetchNodes = async () => {
 const fetchEdges = async () => {
   try {
     const res = await fetch('http://localhost:8081/api/edges')
-    if (res.ok) staticEdges.value = await res.json()
+    if (res.ok) {
+      staticEdges.value = await res.json()
+    }
   } catch (e) { console.error("Failed to fetch edges", e) }
+}
+
+const processStaticEdgesForHighFidelity = async (edges) => {
+  if (!allNodes.value.length) return
+  
+  systemLog.value = 'Enhancing grid with road geometry...'
+  
+  const nodeMap = {}
+  allNodes.value.forEach(n => { nodeMap[n.id] = n })
+  
+  for (let i = 0; i < edges.length; i++) {
+    const edge = edges[i]
+    const sourceNode = nodeMap[edge.source]
+    const targetNode = nodeMap[edge.target]
+    
+    if (sourceNode && targetNode) {
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${sourceNode.longitude},${sourceNode.latitude};${targetNode.longitude},${targetNode.latitude}?overview=full&geometries=geojson`
+        const res = await fetch(url)
+        const data = await res.json()
+        
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          edge.roadGeometry = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+          
+          if (i % 2 === 0) {
+            staticEdges.value = [...edges]
+            systemLog.value = `Mapping roads: ${i+1}/${edges.length} curved...`
+          }
+        }
+      } catch (err) {
+        console.warn(`Failed to snap edge ${edge.source}->${edge.target}`, err)
+      }
+    }
+    // Respect OSRM public server rate limits
+    await new Promise(r => setTimeout(r, 60))
+  }
+  
+  staticEdges.value = [...edges]
+  systemLog.value = 'Grid fully enhanced with road geometry.'
 }
 
 const fetchAmbulances = async () => {
@@ -466,6 +507,33 @@ const handleCalculateRoute = async () => {
     if (data.relaxationSteps && data.relaxationSteps.length > 0) {
       await visualizeAlgorithm(data.relaxationSteps)
     }
+
+    // --- NEW: OSM Road Snapping (CURVY & FLEXIBLE) ---
+    if (data.coordinates && data.coordinates.length >= 2) {
+      try {
+        systemLog.value = 'Generating high-resolution road path...'
+        const coordString = data.coordinates
+          .map(c => `${c.lng || c.longitude},${c.lat || c.latitude}`)
+          .join(';')
+        
+        // Use 'route' with overview=full to get all the curves and turns of the streets
+        const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson&continue_straight=false`)
+        const osrmData = await osrmRes.json()
+        
+        if (osrmData.code === 'Ok' && osrmData.routes && osrmData.routes.length > 0) {
+          // Extract the high-resolution geometry coordinates
+          const snappedCoords = osrmData.routes[0].geometry.coordinates.map(c => ({
+            lat: c[1],
+            lng: c[0]
+          }))
+          // Replace the sparse node coordinates with dense road coordinates
+          data.coordinates = snappedCoords
+        }
+      } catch (osrmErr) {
+        console.error('OSM Road Generation failed, falling back to straight edges:', osrmErr)
+      }
+    }
+    // --------------------------------------------------
 
     routeData.value = data
     systemLog.value = data.message
