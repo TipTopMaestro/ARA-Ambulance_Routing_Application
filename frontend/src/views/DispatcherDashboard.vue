@@ -207,7 +207,7 @@
                     <span class="status-text">{{ amb.status }}</span>
                   </div>
                 </td>
-                <td class="table-cell">{{ amb.hospitalId }}</td>
+                <td class="table-cell">{{ amb.hospitalName }}</td>
               </tr>
               <tr v-if="ambulances.length === 0" class="table-row">
                 <td colspan="3" class="table-empty">No ambulances available</td>
@@ -1198,3 +1198,4 @@ input:checked + .slider:before {
   }
 }
 </style>
+

@@ -53,6 +53,11 @@ public class Ambulance {
         return hospital != null ? hospital.getId() : null;
     }
 
+    @JsonProperty("hospitalName")
+    public String getHospitalName() {
+        return hospital != null ? hospital.getName() : "Unknown";
+    }
+
     @JsonProperty("hospitalOsmNodeId")
     public String getHospitalOsmNodeId() {
         return (hospital != null) ? "H" + hospital.getId() : null; 
