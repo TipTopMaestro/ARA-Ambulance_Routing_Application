@@ -12,105 +12,92 @@ import java.util.Optional;
 @Service
 public class MissionService {
 
-    private final RequestLogRepository requestRepository;
+    private final MissionRepository missionRepository;
     private final AmbulanceRepository ambulanceRepository;
     private final HospitalRepository hospitalRepository;
-    private final PatientRepository patientRepository;
-    private final LocationRepository locationRepository;
     private final UserRepository userRepository;
-    private final GeneratedPathRepository pathRepository;
 
-    public MissionService(RequestLogRepository requestRepository, 
+    private final PatientRepository patientRepository;
+
+    public MissionService(MissionRepository missionRepository, 
                           AmbulanceRepository ambulanceRepository,
                           HospitalRepository hospitalRepository,
-                          PatientRepository patientRepository,
-                          LocationRepository locationRepository,
                           UserRepository userRepository,
-                          GeneratedPathRepository pathRepository) {
-        this.requestRepository = requestRepository;
+                          PatientRepository patientRepository) {
+        this.missionRepository = missionRepository;
         this.ambulanceRepository = ambulanceRepository;
         this.hospitalRepository = hospitalRepository;
-        this.patientRepository = patientRepository;
-        this.locationRepository = locationRepository;
         this.userRepository = userRepository;
-        this.pathRepository = pathRepository;
+        this.patientRepository = patientRepository;
     }
 
     @Transactional
-    public RequestLog createMission(Mission missionDto) {
-        Patient patient = patientRepository.findById(missionDto.getPatientId())
-            .orElseThrow(() -> new RuntimeException("Patient not found"));
-
-        Ambulance ambulance = ambulanceRepository.findById(missionDto.getAmbulanceId())
+    public Mission createMission(Mission missionDto) {
+        Ambulance ambulance = ambulanceRepository.findById(missionDto.getAmbulance().getId())
             .orElseThrow(() -> new RuntimeException("Ambulance not found"));
 
-        Hospital hospital = hospitalRepository.findById(missionDto.getHospitalId())
-            .orElseThrow(() -> new RuntimeException("Hospital not found"));
+        if (ambulance.getDriver() == null) {
+            throw new RuntimeException("Selected ambulance has no assigned driver");
+        }
 
-        GeneratedPath path = pathRepository.findById(missionDto.getPathId())
-            .orElseThrow(() -> new RuntimeException("Generated path not found. Calculate route first."));
-
-        Long dispatcherId = missionDto.getDispatcherId() != null ? missionDto.getDispatcherId() : 1L;
-        User dispatcher = userRepository.findById(dispatcherId)
+        User dispatcher = userRepository.findById(missionDto.getDispatcher().getId())
             .orElseThrow(() -> new RuntimeException("Dispatcher not found"));
 
-        RequestLog request = new RequestLog();
-        request.setPatient(patient);
-        request.setHospital(hospital);
-        request.setDispatcher(dispatcher);
-        if (missionDto.getDriverId() != null) {
-            User driver = userRepository.findById(missionDto.getDriverId())
-                .orElseThrow(() -> new RuntimeException("Driver not found"));
-            request.setDriver(driver);
-        } else {
-            userRepository.findByRoleAndActiveTrue(User.UserRole.DRIVER).stream()
-                .findFirst()
-                .ifPresent(request::setDriver);
+        // 1. Save Patient first
+        Patient patient = missionDto.getPatient();
+        if (patient.getId() == null) {
+            patient = patientRepository.save(patient);
         }
-        request.setAmbulance(ambulance);
-        request.setEmergencyType(missionDto.getEmergencyType());
-        request.setGeneratedPath(path);
-        request.setStatus(RequestLog.RequestStatus.DISPATCHED);
-        request.setDispatchedAt(LocalDateTime.now());
-        
+
+        // 2. Create Mission with PENDING_CONFIRMATION
+        Mission mission = new Mission();
+        mission.setDispatcher(dispatcher);
+        mission.setDriver(ambulance.getDriver()); // Auto-assign driver from ambulance
+        mission.setAmbulance(ambulance);
+        mission.setPatient(patient);
+        mission.setStartLat(missionDto.getStartLat());
+        mission.setStartLng(missionDto.getStartLng());
+        mission.setEndLat(missionDto.getEndLat());
+        mission.setEndLng(missionDto.getEndLng());
+        mission.setEstimatedTime(missionDto.getEstimatedTime());
+        mission.setPathJson(missionDto.getPathJson());
+        mission.setStatus(Mission.MissionStatus.PENDING_CONFIRMATION);
+        mission.setDispatchTime(LocalDateTime.now());
+
         ambulance.setStatus(Ambulance.AmbulanceStatus.RESERVED);
         ambulanceRepository.save(ambulance);
 
-        return requestRepository.save(request);
+        return missionRepository.save(mission);
     }
 
-    public List<RequestLog> getAllMissions() {
-        return requestRepository.findAll();
+    public List<Mission> getAllMissions() {
+        return missionRepository.findAll();
     }
 
-    public Optional<RequestLog> getActiveMissionForDriver(Long driverId) {
+    public Optional<Mission> getActiveMissionForDriver(Long driverId) {
         return userRepository.findById(driverId)
-            .flatMap(driver -> requestRepository.findByDriverAndStatusIn(
+            .flatMap(driver -> missionRepository.findByDriverAndStatusIn(
                 driver, 
-                List.of(RequestLog.RequestStatus.DISPATCHED, RequestLog.RequestStatus.EN_ROUTE, RequestLog.RequestStatus.TRANSPORT)
-            ));
+                List.of(Mission.MissionStatus.PENDING_CONFIRMATION, Mission.MissionStatus.EN_ROUTE)
+            ).stream().findFirst());
     }
 
     @Transactional
-    public RequestLog updateMissionStatus(Long id, String statusStr) {
-        RequestLog request = requestRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Request not found"));
+    public Mission updateMissionStatus(Long id, String statusStr) {
+        Mission mission = missionRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Mission not found"));
 
-        RequestLog.RequestStatus newStatus = RequestLog.RequestStatus.valueOf(statusStr);
-        request.setStatus(newStatus);
+        Mission.MissionStatus newStatus = Mission.MissionStatus.valueOf(statusStr);
+        mission.setStatus(newStatus);
 
-        Ambulance ambulance = request.getAmbulance();
+        Ambulance ambulance = mission.getAmbulance();
 
         switch (newStatus) {
             case EN_ROUTE:
                 ambulance.setStatus(Ambulance.AmbulanceStatus.EN_ROUTE);
                 break;
-            case TRANSPORT:
-                request.setArrivedAtPatientAt(LocalDateTime.now());
-                ambulance.setStatus(Ambulance.AmbulanceStatus.TRANSPORT);
-                break;
             case COMPLETED:
-                request.setCompletedAt(LocalDateTime.now());
+                mission.setArrivalTime(LocalDateTime.now());
                 ambulance.setStatus(Ambulance.AmbulanceStatus.AVAILABLE);
                 break;
             case CANCELLED:
@@ -121,6 +108,6 @@ public class MissionService {
         }
 
         ambulanceRepository.save(ambulance);
-        return requestRepository.save(request);
+        return missionRepository.save(mission);
     }
 }

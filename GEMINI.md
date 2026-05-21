@@ -15,13 +15,12 @@ The Ambulance Routing Application (ARA) is a high-performance emergency response
 
 ### Backend (`/`)
 - `src/main/java/com/example/bellmanford/`
-    - `controller/`: REST API endpoints (`AuthController`, `MissionController`, `RouteController`, `FleetController`).
-    - `model/`: JPA Entities (`User`, `Ambulance`, `Hospital`, `Location`, `Patient`, `RequestLog`, `GeneratedPath`).
-    - `service/`: Business logic (`BellmanFordService`, `MissionService`, `MockDatabaseService`).
+    - `controller/`: REST API endpoints (`AuthController`, `AmbulanceController`, `MissionController`, `RouteController`, `NodeController`).
+    - `model/`: JPA Entities (`User`, `Ambulance`, `Hospital`, `ManualNode`, `CustomLogicalEdge`, `Mission`).
+    - `service/`: Business logic (`BellmanFordService`, `MissionService`, `OsmService`, `GraphCacheService`, `DataSeeder`).
     - `repository/`: Spring Data JPA interfaces.
 - `src/main/resources/`
     - `application.properties`: DB configuration.
-    - `osm_data.json`: OpenStreetMap data used for graph construction.
 
 ### Frontend (`/frontend/`)
 - `src/views/`: Main page components (`Login.vue`, `DispatcherDashboard.vue`, `DriverDashboard.vue`, `MissionLogs.vue`, `Profile.vue`).
@@ -49,7 +48,7 @@ The Ambulance Routing Application (ARA) is a high-performance emergency response
 ## 🧠 Development Conventions
 
 ### ⚙️ Backend Standards
-- **Standardized Schema**: Always use the normalized relational schema (refer to `RequestLog`, `Location`, `Hospital`). Avoid denormalization.
+- **Standardized Schema**: Always use the normalized relational schema. Avoid denormalization.
 - **Services**: Business logic must reside in `@Service` classes, not controllers.
 - **Error Handling**: Use `ResponseEntity` with appropriate status codes (e.g., 401 for Auth, 404 for missing entities).
 
@@ -60,8 +59,8 @@ The Ambulance Routing Application (ARA) is a high-performance emergency response
 - **Styling**: Adhere to the established `App.css` variables and Tailwind-like utility patterns.
 
 ### 🔄 Mission Flow
-1. Dispatcher creates a `Mission` (DTO).
-2. `MissionService` validates the request and creates a standardized `RequestLog` (Entity).
-3. The `RequestLog` acts as both the active mission and the permanent audit log.
+1. Dispatcher creates a `Mission` via `POST /api/missions`.
+2. `MissionService` validates the request, sets status to `DISPATCHED`, and persists it.
+3. The `Mission` entity acts as both the active mission and the permanent audit log.
 4. Driver dashboard polls for active missions via `GET /api/missions/active/{driverId}` and updates status via `PUT /api/missions/{id}/status`.
-5. Status transitions update both the request log and the ambulance fleet status.
+5. Status transitions update the mission status and the associated ambulance status.

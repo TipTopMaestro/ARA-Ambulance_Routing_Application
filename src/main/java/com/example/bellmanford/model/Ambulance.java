@@ -1,17 +1,7 @@
 package com.example.bellmanford.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "ambulances")
@@ -25,6 +15,10 @@ public class Ambulance {
     @JoinColumn(name = "hospital_id", nullable = false)
     private Hospital hospital;
 
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "driver_id")
+    private User driver;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AmbulanceStatus status;
@@ -37,7 +31,6 @@ public class Ambulance {
     }
 
     public Ambulance(Hospital hospital, AmbulanceStatus status) {
-        
         this.hospital = hospital;
         this.status = status;
     }
@@ -50,7 +43,6 @@ public class Ambulance {
         this.id = id;
     }
 
-
     @com.fasterxml.jackson.annotation.JsonIgnore
     public Hospital getHospital() {
         return hospital;
@@ -61,13 +53,26 @@ public class Ambulance {
         return hospital != null ? hospital.getId() : null;
     }
 
+    @JsonProperty("hospitalName")
+    public String getHospitalName() {
+        return hospital != null ? hospital.getName() : "Unknown";
+    }
+
     @JsonProperty("hospitalOsmNodeId")
     public String getHospitalOsmNodeId() {
-        return hospital != null && hospital.getLocation() != null ? hospital.getLocation().getOsmNodeId() : null;
+        return (hospital != null) ? "H" + hospital.getId() : null; 
     }
 
     public void setHospital(Hospital hospital) {
         this.hospital = hospital;
+    }
+
+    public User getDriver() {
+        return driver;
+    }
+
+    public void setDriver(User driver) {
+        this.driver = driver;
     }
 
     public AmbulanceStatus getStatus() {

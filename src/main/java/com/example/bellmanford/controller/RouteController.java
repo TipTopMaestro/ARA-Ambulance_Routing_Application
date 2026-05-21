@@ -1,21 +1,15 @@
 package com.example.bellmanford.controller;
 
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.bellmanford.model.GraphNode;
 import com.example.bellmanford.model.PathRequest;
 import com.example.bellmanford.model.PathResponse;
 import com.example.bellmanford.service.BellmanFordService;
-import com.example.bellmanford.service.MockDatabaseService;
+import com.example.bellmanford.service.StaticGraphService;
+
+import java.util.Collection;
 
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 @RestController
@@ -23,68 +17,27 @@ import com.example.bellmanford.service.MockDatabaseService;
 public class RouteController {
 
     private final BellmanFordService bellmanFordService;
-    private final MockDatabaseService databaseService;
-
-    private final com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository;
-    private final com.example.bellmanford.repository.LocationRepository locationRepository;
-    private final ObjectMapper objectMapper;
+    private final StaticGraphService graphService;
 
     public RouteController(BellmanFordService bellmanFordService, 
-                           MockDatabaseService databaseService,
-                           com.example.bellmanford.repository.GeneratedPathRepository generatedPathRepository,
-                           com.example.bellmanford.repository.LocationRepository locationRepository,
-                           ObjectMapper objectMapper) {
+                           StaticGraphService graphService) {
         this.bellmanFordService = bellmanFordService;
-        this.databaseService = databaseService;
-        this.generatedPathRepository = generatedPathRepository;
-        this.locationRepository = locationRepository;
-        this.objectMapper = objectMapper;
+        this.graphService = graphService;
     }
 
     @PostMapping("/path")
     public ResponseEntity<PathResponse> findShortestPath(@RequestBody PathRequest request) {
         PathResponse response = bellmanFordService.calculateShortestPath(request.getSourceId(), request.getTargetId());
-        
-        // Log the path to the database
-        try {
-            com.example.bellmanford.model.Location source = locationRepository.findByOsmNodeId(request.getSourceId())
-                .orElseGet(() -> {
-                    GraphNode node = databaseService.getNode(request.getSourceId());
-                    if (node == null) return null;
-                    return locationRepository.save(new com.example.bellmanford.model.Location(
-                        request.getSourceId(), node.getName(), node.getLatitude(), node.getLongitude(), 
-                        com.example.bellmanford.model.Location.LocationType.NODE
-                    ));
-                });
-
-            com.example.bellmanford.model.Location target = locationRepository.findByOsmNodeId(request.getTargetId())
-                .orElseGet(() -> {
-                    GraphNode node = databaseService.getNode(request.getTargetId());
-                    if (node == null) return null;
-                    return locationRepository.save(new com.example.bellmanford.model.Location(
-                        request.getTargetId(), node.getName(), node.getLatitude(), node.getLongitude(), 
-                        com.example.bellmanford.model.Location.LocationType.NODE
-                    ));
-                });
-
-            if (source != null && target != null && !response.getPath().isEmpty()) {
-                com.example.bellmanford.model.GeneratedPath pathLog = new com.example.bellmanford.model.GeneratedPath();
-                pathLog.setSourceLocation(source);
-                pathLog.setTargetLocation(target);
-                pathLog.setEstimatedDistanceMeters(0.0); // Should be calculated if needed
-                pathLog.setEstimatedTimeSeconds(response.getEstimatedTime());
-                pathLog.setRouteJson(objectMapper.writeValueAsString(response.getCoordinates()));
-                response.setPathId(generatedPathRepository.save(pathLog).getId());
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to log path: " + e.getMessage());
-        }
-
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/nodes")
-    public ResponseEntity<List<GraphNode>> getNodes() {
-        return ResponseEntity.ok(databaseService.getSignificantNodes());
+    public ResponseEntity<Collection<GraphNode>> getNodes() {
+        return ResponseEntity.ok(graphService.getNodes().values());
+    }
+
+    @GetMapping("/edges")
+    public ResponseEntity<?> getEdges() {
+        return ResponseEntity.ok(graphService.getEdges());
     }
 }
