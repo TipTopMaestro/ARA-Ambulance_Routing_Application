@@ -1,7 +1,5 @@
 package com.example.bellmanford.model;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -28,6 +26,7 @@ public class Mission {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "patient_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonProperty("patient")
     private Patient patient;
 
     @Column(name = "start_lat")
@@ -45,8 +44,7 @@ public class Mission {
     @Column(name = "estimated_time")
     private Double estimatedTime;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "path_json", columnDefinition = "json")
+    @Column(name = "path_json", columnDefinition = "LONGTEXT")
     private String pathJson;
 
     @Enumerated(EnumType.STRING)

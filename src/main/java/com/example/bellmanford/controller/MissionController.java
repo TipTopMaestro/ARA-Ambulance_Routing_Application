@@ -30,14 +30,14 @@ public class MissionController {
     }
 
     @GetMapping("/active/{driverId}")
-    public ResponseEntity<Mission> getActiveMission(@PathVariable Long driverId) {
+    public ResponseEntity<Mission> getActiveMission(@PathVariable("driverId") Long driverId) {
         return missionService.getActiveMissionForDriver(driverId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<Mission> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> statusUpdate) {
+    public ResponseEntity<Mission> updateStatus(@PathVariable("id") Long id, @RequestBody Map<String, String> statusUpdate) {
         try {
             return ResponseEntity.ok(missionService.updateMissionStatus(id, statusUpdate.get("status")));
         } catch (Exception e) {

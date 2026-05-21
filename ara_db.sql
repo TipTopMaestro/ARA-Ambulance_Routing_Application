@@ -67,7 +67,7 @@ CREATE TABLE `missions` (
   `end_lat` double DEFAULT NULL,
   `end_lng` double DEFAULT NULL,
   `estimated_time` double DEFAULT NULL,
-  `path_json` json DEFAULT NULL,
+  `path_json` longtext DEFAULT NULL,
   `status` varchar(255) DEFAULT NULL,
   `dispatch_time` datetime(6) DEFAULT NULL,
   `transport_time` datetime(6) DEFAULT NULL,

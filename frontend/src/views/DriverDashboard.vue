@@ -112,7 +112,7 @@ const driverMissions = computed(() => {
   if (!user.value) return []
   return missions.value.filter(
     (mission) =>
-      mission.driver?.user_id === user.value.id &&
+      mission.driver?.id === user.value.id &&
       ['PENDING_CONFIRMATION', 'EN_ROUTE'].includes(mission.status)
   )
 })

@@ -1,16 +1,17 @@
 package com.example.bellmanford.model;
 
 import org.locationtech.jts.geom.Point;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Node {
     private Long id;
     private Point location;
+
+    public Node() {}
+
+    public Node(Long id, Point location) {
+        this.id = id;
+        this.location = location;
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
