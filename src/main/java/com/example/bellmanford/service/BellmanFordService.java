@@ -13,6 +13,7 @@ import com.example.bellmanford.model.Coordinate;
 import com.example.bellmanford.model.GraphEdge;
 import com.example.bellmanford.model.GraphNode;
 import com.example.bellmanford.model.PathResponse;
+import com.example.bellmanford.model.RelaxationStep;
 import com.example.bellmanford.model.RouteStep;
 
 @Service
@@ -38,7 +39,7 @@ public class BellmanFordService {
 
         Map<String, Double> distance = new HashMap<>();
         Map<String, String> predecessor = new HashMap<>();
-        List<com.example.bellmanford.model.RelaxationStep> relaxationSteps = new ArrayList<>();
+        List<RelaxationStep> relaxationSteps = new ArrayList<>();
 
         for (String vertex : vertices) {
             distance.put(vertex, Double.POSITIVE_INFINITY);
@@ -62,10 +63,8 @@ public class BellmanFordService {
                         relaxedAny = true;
                     }
                     
-                    // Only record significant relaxations to avoid bloat.
-                    // We cap the total relaxation steps to prevent memory exhaustion in cycle scenarios.
                     if (shouldRelax && relaxationSteps.size() < 5000) {
-                        relaxationSteps.add(new com.example.bellmanford.model.RelaxationStep(
+                        relaxationSteps.add(new RelaxationStep(
                             i, edge.getSource(), edge.getTarget(), edge.getWeight(), newDistance, shouldRelax, null
                         ));
                     }
@@ -118,7 +117,6 @@ public class BellmanFordService {
         String current = targetId;
         while (current != null) {
             if (visited.contains(current)) {
-                // Cycle detected in predecessor map! Break to avoid infinite loop.
                 break;
             }
             visited.add(current);

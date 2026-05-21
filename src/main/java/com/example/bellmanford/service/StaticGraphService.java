@@ -61,7 +61,7 @@ public class StaticGraphService {
         addNode("RE5", 7.316849, 125.688829, null);
         addNode("RE6", 7.316977, 125.688561, null);
         addNode("RE7", 7.316338, 125.689988, null);
-        addNode("RE8", 7.316519, 125.690246, null);
+        addNode("RE8", 7.316530, 125.690219, null);
         addNode("RE9", 7.316445, 125.690954, null);
         addNode("RE10",7.319776, 125.690857, null);
         addNode("RE11",7.316392, 125.691383, null);
@@ -92,8 +92,33 @@ public class StaticGraphService {
         addNode("RE36",7.314721, 125.690686, null);
         addNode("RE37",7.314785, 125.691544, null);
         addNode("RE38", 7.315689, 125.691587, null);
+        addNode("RE39", 7.319845, 125.692904, null);
+        addNode("RE40", 7.316104, 125.693153, null);
+        addNode("RE41", 7.316120, 125.692912, null);
+        addNode("RE42", 7.318116, 125.692896, null);
+        addNode("RE43", 7.316099, 125.692445, null);
+        addNode("RE44", 7.316120, 125.692654, null);
+        addNode("RE45", 7.316924, 125.692670, null);
+        addNode("RE46", 7.318116, 125.692665, null);
+        addNode("RE47", 7.317163, 125.692670, null);
+        addNode("RE48", 7.318062, 125.691935, null);
+        addNode("RE49", 7.317445, 125.690374, null);
+        addNode("RE50", 7.315780, 125.693496, null);
+        addNode("RE51", 7.315796, 125.693963, null);
+        addNode("RE52", 7.315780, 125.694194, null);
+        addNode("RE53", 7.315806, 125.693716, null);
+        addNode("RE54", 7.317004, 125.693470, null);
+        addNode("RE55", 7.317019, 125.693706, null);
+        addNode("RE56", 7.317025, 125.693952, null);
+        addNode("RE57", 7.317025, 125.693952, null);
+        addNode("RE58", 7.316998, 125.694183, null);
+        addNode("RE59", 7.316189, 125.691394, null);
+        addNode("RE60", 7.316158, 125.691576, null);
 
 
+
+
+        
         
         //Patient
 
@@ -116,7 +141,7 @@ public class StaticGraphService {
         addEdge("BN8", "BN9", .2);
         addEdge("BN15", "RE7", 1.0);
         addEdge("BN15", "BN14", 1.0);
-        addEdge("BN14", "BN13", 1.0);
+        addEdge("BN14", "BN13", -1.0);///////////////////
         addEdge("BN13", "BN12", 1.0);
         addEdge("BN12", "BN11", 1.0);
         addEdge("BN11", "BN10", 1.0);
@@ -144,12 +169,45 @@ public class StaticGraphService {
         addEdge("RE10","RE12" , 0.2);
         addEdge("RE12","RE13", 0.2);
         addEdge("RE13","RE14", 0.2);
-        
+        addEdge("RE24", "RE12", 3.0);
         addEdge("RE37", "RE38", 1.0);
+        addEdge("RE38", "RE15", 1.0);
+        addEdge("RE15", "RE16", 1.0);
+        addEdge("RE16", "RE18", 1.0);
+        addEdge("RE18", "RE20", 1.0);
+        addEdge("RE20", "RE22", 1.0);
+        addEdge("RE8", "RE49", 1.0);
+        addEdge("RE11", "RE59", 1.0);
+        addEdge("RE59", "RE60", 1.0);
+        addEdge("RE60", "RE38", 1.0);
+        addEdge("RE15", "RE27", 2);
+        addEdge("RE27", "RE13", 2);
+        addEdge("RE16", "RE48", 2);
+        addEdge("RE48", "RE14", 2);
+        addEdge("RE18", "RE28", 2);
+        addEdge("RE28", "RE17", 2);
+        addEdge("RE20", "RE43",1);
+        addEdge("RE43", "RE29",2);
+        addEdge("RE29", "RE19",2);
+        addEdge("RE14","RE17",1);
+        addEdge("RE17","RE19",1);
+        addEdge("RE43","RE44", 2);
+        addEdge("RE44", "RE45", 2);
+        addEdge("RE44", "RE41", 1);
+        addEdge("RE41", "RE42", 1);
+        addEdge("RE42", "RE39",2);
+        addEdge("RE29", "RE46", 1);
+        addEdge("RE46", "RE47", 2);
+        addEdge("RE19", "RE21", 1);
+        addEdge("RE21", "RE39", 1);
+        addEdge("RE46", "RE42", 1);
+        addEdge("RE27", "RE48", 1);
+        addEdge("RE48", "RE28", 1);
+        addEdge("RE28", "RE29", 1);
 
-        
+        //BIDIRECTIONAL
+        addEdge("RE17", "RE28",2);
 
-        
 
 
 
@@ -160,8 +218,10 @@ public class StaticGraphService {
         addEdge("BN1", "BN17", -1.0);
         addEdge("BN17", "BN18", -1.0);
         addEdge("BN18", "BN19", -1.0);
-        addEdge("BN14","RE36", -2);
-        addEdge("RE36", "RE37", -2);
+        addEdge("BN14","RE36", -3);
+        addEdge("RE36", "RE37", 1);//DEMO
+        addEdge("RE37","BN13", 2);//DEMO
+
     }
 
     private void addNode(String id, double lat, double lon, String name) {

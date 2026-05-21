@@ -84,10 +84,15 @@
         <h3 class="eta-title">ETA</h3>
 
         <div class="eta-item">
-            <div class="eta-value">
-              {{ routeData?.estimatedTime?.toFixed(1) || '0.0' }} min
-            </div>
+          <div class="eta-value" :class="{ 'warning-text': routeData?.negativeCycleDetected }">
+            {{ formatETA(routeData?.estimatedTime) }} min
           </div>
+        </div>
+
+        <div v-if="routeData?.negativeCycleDetected" class="cycle-warning">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>Negative cycle detected! Distances may be unstable.</span>
+        </div>
 
         <div class="eta-item">
           <label class="eta-label">Starting From:</label>
@@ -128,6 +133,7 @@
         :staticEdges="staticEdges"
         :showGraphEdges="showGraphEdges"
         :showNodeIds="showNodeIds"
+        :showMapNodes="showMapNodes"
         :viewCenter="mapCenter"
         :viewZoom="mapZoom"
         @view-changed="handleMapViewChanged"
@@ -162,6 +168,9 @@
         <label class="form-label">Current Action: 
           <span class="current-action-value">{{ currentAction }}...</span>
         </label>
+        <div class="system-log-message" :class="{ 'warning-text': routeData?.negativeCycleDetected }">
+          {{ systemLog }}
+        </div>
       </div>
       <!-- Fleet Status Card -->
       <div class="fleet-status">
@@ -202,6 +211,13 @@
       <div class="system-status" style="margin-bottom: 0;">
         <h3 class="panel-subtitle">Map Layers</h3>
         <div class="status-items">
+          <div class="status-item">
+            <span class="status-label">Show Map Nodes:</span>
+            <label class="switch">
+              <input type="checkbox" v-model="showMapNodes">
+              <span class="slider round"></span>
+            </label>
+          </div>
           <div class="status-item">
             <span class="status-label">Show Graph Network:</span>
             <label class="switch">
@@ -250,6 +266,7 @@ const allEdges = ref([])
 const staticEdges = ref([])
 const showGraphEdges = ref(true)
 const showNodeIds = ref(false)
+const showMapNodes = ref(true)
 const mapCenter = ref([7.3081, 125.6841])
 const mapZoom = ref(14)
 
@@ -264,6 +281,7 @@ const loadPanelState = () => {
   const rightSaved = localStorage.getItem('ara_right_panel_open')
   const graphSaved = localStorage.getItem('ara_show_graph_edges')
   const nodeIdsSaved = localStorage.getItem('ara_show_node_ids')
+  const mapNodesSaved = localStorage.getItem('ara_show_map_nodes')
   const mapCenterSaved = localStorage.getItem('ara_map_center')
   const mapZoomSaved = localStorage.getItem('ara_map_zoom')
   
@@ -277,6 +295,7 @@ const loadPanelState = () => {
 
   showGraphEdges.value = graphSaved === null ? true : graphSaved === 'true'
   showNodeIds.value = nodeIdsSaved === null ? false : nodeIdsSaved === 'true'
+  showMapNodes.value = mapNodesSaved === null ? true : mapNodesSaved === 'true'
   
   if (mapCenterSaved) mapCenter.value = JSON.parse(mapCenterSaved)
   if (mapZoomSaved) mapZoom.value = parseInt(mapZoomSaved)
@@ -292,6 +311,7 @@ const savePanelState = () => {
 const saveMapLayerState = () => {
   localStorage.setItem('ara_show_graph_edges', showGraphEdges.value)
   localStorage.setItem('ara_show_node_ids', showNodeIds.value)
+  localStorage.setItem('ara_show_map_nodes', showMapNodes.value)
 }
 
 const handleMapViewChanged = (view) => {
@@ -303,6 +323,7 @@ const handleMapViewChanged = (view) => {
 
 watch(showGraphEdges, saveMapLayerState)
 watch(showNodeIds, saveMapLayerState)
+watch(showMapNodes, saveMapLayerState)
 
 const checkScreenSize = () => {
   isMobile.value = window.innerWidth <= 1024
@@ -345,9 +366,7 @@ const patientName = ref('')
 const emergencyType = ref('')
 const selectedHospital = ref('') // Internal source, usually inferred from ambulance
 const selectedAmbulance = ref('')
-const selectedHospitalId = ref(null)
 const destinationId = ref('')
-const locationDescription = ref('')
 
 // computed selected node details for ETA location display
 const selectedNode = computed(() => {
@@ -357,14 +376,8 @@ const selectedNode = computed(() => {
 
 // when dispatcher selects an ambulance, auto-fill assigned hospital info
 watch(selectedAmbulance, (val) => {
-  if (!val) {
-    selectedHospitalId.value = null
-    return
-  }
-  const amb = ambulances.value.find(a => a.id === val)
-  if (amb) {
-    selectedHospitalId.value = amb.hospitalId || null
-  }
+  if (!val) return
+  // Logic could go here if needed to auto-select hospital
 })
 
 const routeData = ref(null)
@@ -389,7 +402,6 @@ const systemLog = ref('Ready')
 const currentTraversedNode = ref(null)
 const currentRelaxedEdge = ref(null)
 const visitedNodes = ref([])
-const visualizationActive = ref(false)
 
 let pollInterval = null
 
@@ -429,45 +441,6 @@ const fetchEdges = async () => {
   } catch (e) { console.error("Failed to fetch edges", e) }
 }
 
-const processStaticEdgesForHighFidelity = async (edges) => {
-  if (!allNodes.value.length) return
-  
-  systemLog.value = 'Enhancing grid with road geometry...'
-  
-  const nodeMap = {}
-  allNodes.value.forEach(n => { nodeMap[n.id] = n })
-  
-  for (let i = 0; i < edges.length; i++) {
-    const edge = edges[i]
-    const sourceNode = nodeMap[edge.source]
-    const targetNode = nodeMap[edge.target]
-    
-    if (sourceNode && targetNode) {
-      try {
-        const url = `https://router.project-osrm.org/route/v1/driving/${sourceNode.longitude},${sourceNode.latitude};${targetNode.longitude},${targetNode.latitude}?overview=full&geometries=geojson`
-        const res = await fetch(url)
-        const data = await res.json()
-        
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          edge.roadGeometry = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
-          
-          if (i % 2 === 0) {
-            staticEdges.value = [...edges]
-            systemLog.value = `Mapping roads: ${i+1}/${edges.length} curved...`
-          }
-        }
-      } catch (err) {
-        console.warn(`Failed to snap edge ${edge.source}->${edge.target}`, err)
-      }
-    }
-    // Respect OSRM public server rate limits
-    await new Promise(r => setTimeout(r, 60))
-  }
-  
-  staticEdges.value = [...edges]
-  systemLog.value = 'Grid fully enhanced with road geometry.'
-}
-
 const fetchAmbulances = async () => {
   try {
     const res = await fetch('http://localhost:8081/api/ambulances')
@@ -477,6 +450,12 @@ const fetchAmbulances = async () => {
       if (Array.isArray(data) && data.length > 0) ambulances.value = data
     }
   } catch (e) { console.error("Failed to fetch ambulances", e) }
+}
+
+const formatETA = (time) => {
+  if (time === null || time === undefined) return '0.0'
+  if (time === Infinity || time === 'Infinity') return '∞'
+  return parseFloat(time).toFixed(1)
 }
 
 const handleNodeClick = (id) => {
@@ -545,27 +524,31 @@ const handleCalculateRoute = async () => {
 }
 
 const visualizeAlgorithm = async (steps) => {
-  visualizationActive.value = true
   visitedNodes.value = []
   const visitedSet = new Set()
 
-  // Limit steps to visualize if too many, or just go fast
-  const visualizationSteps = steps.slice(0, 1000) // Slightly more for better visualization
-  for (const step of visualizationSteps) {
+  // Cap steps to prevent UI freeze during negative cycle detection
+  const visualizationSteps = steps.slice(0, 300) 
+  
+  for (let i = 0; i < visualizationSteps.length; i++) {
+    const step = visualizationSteps[i]
     currentTraversedNode.value = step.targetId
     currentRelaxedEdge.value = { sourceId: step.sourceId, targetId: step.targetId }
     
     if (!visitedSet.has(step.targetId)) {
       visitedSet.add(step.targetId)
-      visitedNodes.value = Array.from(visitedSet)
+      // Only update the reactive array every 10 steps to reduce map re-renders
+      if (i % 10 === 0 || i === visualizationSteps.length - 1) {
+        visitedNodes.value = Array.from(visitedSet)
+      }
     }
 
-    // Faster speed for the "wave" effect
+    // Small delay to allow UI to breathe
     await new Promise(resolve => setTimeout(resolve, 5))
   }
+  
   currentTraversedNode.value = null
   currentRelaxedEdge.value = null
-  visualizationActive.value = false
 }
 
 const handleDispatch = async () => {
@@ -907,8 +890,37 @@ select.form-select {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 1rem;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
+}
+
+.system-log-message {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.warning-text {
+  color: #dc2626 !important;
+}
+
+.cycle-warning {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.cycle-warning i {
+  font-size: 1.1rem;
 }
 
 .current-action-value {

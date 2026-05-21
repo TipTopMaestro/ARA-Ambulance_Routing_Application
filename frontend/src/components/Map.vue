@@ -17,6 +17,7 @@ const props = defineProps({
   staticEdges: { type: Array, default: () => [] },
   showGraphEdges: { type: Boolean, default: true },
   showNodeIds: { type: Boolean, default: false },
+  showMapNodes: { type: Boolean, default: true },
   currentTraversedNode: { type: String, default: null },
   currentRelaxedEdge: { type: Object, default: null },
   visitedNodes: { type: Array, default: () => [] },
@@ -33,8 +34,12 @@ let markersLayer = L.layerGroup()
 let backgroundMarkersLayer = L.layerGroup()
 let staticEdgeLinesLayer = L.layerGroup()
 let algoEdgeLinesLayer = L.layerGroup()
+let negativeCycleEdgesLayer = L.layerGroup()
 let relaxedEdgeLine = null
 let resizeObserver = null
+
+// Optimized marker storage
+const markerMap = {}
 
 onMounted(() => {
   if (!mapContainer.value) return
@@ -70,42 +75,57 @@ onMounted(() => {
   })
   resizeObserver.observe(mapContainer.value)
 
+  syncMarkers()
   updateStaticLayers()
   updateAlgoLayers()
   updatePathLayer()
 })
 
-const updateStaticLayers = () => {
+const syncMarkers = () => {
   if (!mapInstance) return
+  
+  const nodeIds = new Set(props.allNodes.map(n => n.id))
+  
+  // Cleanup old markers
+  Object.keys(markerMap).forEach(id => {
+    if (!nodeIds.has(id)) {
+      backgroundMarkersLayer.removeLayer(markerMap[id])
+      delete markerMap[id]
+    }
+  })
 
-  const nodeLookup = {}
-  props.allNodes.forEach(n => { nodeLookup[n.id] = n })
-
-  // 1. Static Edges
-  staticEdgeLinesLayer.clearLayers()
-  if (props.showGraphEdges && props.staticEdges && props.staticEdges.length > 0) {
-    props.staticEdges.forEach(edge => {
-      const source = nodeLookup[edge.source]
-      const target = nodeLookup[edge.target]
-      if (source && target) {
-        const isNegative = edge.weight < 0
-        const line = L.polyline([[source.latitude, source.longitude], [target.latitude, target.longitude]], {
-          color: isNegative ? '#ef4444' : '#64748b', // Red for negative, Grey for normal
-          weight: isNegative ? 5 : 3,
-          dashArray: isNegative ? '5, 10' : null, // Dotted if negative
-          opacity: 0.6
+  // Add new markers if visibility is enabled
+  if (props.showMapNodes) {
+    props.allNodes.forEach(node => {
+      if (!markerMap[node.id]) {
+        const marker = L.circleMarker([node.latitude, node.longitude], {
+          pane: 'markerPane'
         })
-        line.bindTooltip(`${isNegative ? 'Priority' : 'Edge'}: ${edge.weight?.toFixed(2)}`, { sticky: true })
-        staticEdgeLinesLayer.addLayer(line)
+        marker.on('click', () => {
+          props.onNodeClick(node.id, node.latitude, node.longitude, node.name)
+        })
+        markerMap[node.id] = marker
+        backgroundMarkersLayer.addLayer(marker)
       }
     })
+    if (!mapInstance.hasLayer(backgroundMarkersLayer)) {
+      backgroundMarkersLayer.addTo(mapInstance)
+    }
+  } else {
+    // Hide layer if disabled
+    if (mapInstance.hasLayer(backgroundMarkersLayer)) {
+      mapInstance.removeLayer(backgroundMarkersLayer)
+    }
   }
+}
 
-  // 2. Nodes (Markers)
-  backgroundMarkersLayer.clearLayers()
+const updateNodeStyles = () => {
   const visitedSet = new Set(props.visitedNodes)
-
+  
   props.allNodes.forEach(node => {
+    const marker = markerMap[node.id]
+    if (!marker) return
+
     const isHospital = node.id.startsWith('H')
     const isAmbulance = node.id.startsWith('AMB')
     const isSelected = node.id === props.selectedSource || node.id === props.selectedDestination
@@ -117,28 +137,60 @@ const updateStaticLayers = () => {
     else if (isSelected) fillColor = '#10b981'
     else if (isHospital) fillColor = '#ef4444'
     else if (isAmbulance) fillColor = '#f59e0b'
-    else if (isVisited) fillColor = '#fbbf24'
 
-    const marker = L.circleMarker([node.latitude, node.longitude], {
+    marker.setStyle({
       radius: isTraversed ? 12 : (isSelected ? 10 : (isHospital ? 8 : (isAmbulance ? 7 : 5))),
       fillColor: fillColor,
-      color: isTraversed ? '#be123c' : (isSelected ? '#064e3b' : (isVisited ? '#d97706' : '#ffffff')),
-      weight: (isSelected || isTraversed || isVisited) ? 4 : 2,
+      color: isTraversed ? '#be123c' : (isSelected ? '#064e3b' : '#ffffff'),
+      weight: (isSelected || isTraversed) ? 4 : 2,
       opacity: 1,
       fillOpacity: 0.9
     })
 
-    marker.on('click', () => {
-      props.onNodeClick(node.id, node.latitude, node.longitude, node.name)
-    })
-
-    if (props.showNodeIds) {
-      marker.bindTooltip(node.id, { permanent: true, direction: 'top', className: 'node-id-tooltip' })
-    } else {
-      marker.bindTooltip(node.name || node.id, { permanent: false, direction: 'top' })
+    // Update tooltips reactively
+    const currentTooltip = marker.getTooltip()
+    const isCurrentlyPermanent = currentTooltip?.options?.permanent || false
+    const desiredText = props.showNodeIds ? node.id : (node.name || node.id)
+    
+    // If the mode changed (Permanent vs Hover) or the text needs updating, re-bind
+    if (isCurrentlyPermanent !== props.showNodeIds || currentTooltip?.getContent() !== desiredText) {
+      marker.unbindTooltip()
+      marker.bindTooltip(desiredText, { 
+        permanent: props.showNodeIds, 
+        direction: 'top', 
+        className: props.showNodeIds ? 'node-id-tooltip' : '' 
+      })
     }
-    backgroundMarkersLayer.addLayer(marker)
   })
+}
+
+const updateStaticLayers = () => {
+  if (!mapInstance) return
+
+  const nodeLookup = {}
+  props.allNodes.forEach(n => { nodeLookup[n.id] = n })
+
+  staticEdgeLinesLayer.clearLayers()
+  if (props.showGraphEdges && props.staticEdges && props.staticEdges.length > 0) {
+    props.staticEdges.forEach(edge => {
+      const source = nodeLookup[edge.source]
+      const target = nodeLookup[edge.target]
+      if (source && target) {
+        const isNegative = edge.weight < 0
+        const line = L.polyline([[source.latitude, source.longitude], [target.latitude, target.longitude]], {
+          color: isNegative ? '#ef4444' : '#64748b', 
+          weight: isNegative ? 5 : 3,
+          dashArray: isNegative ? '5, 10' : null,
+          opacity: 0.6,
+          bubblingMouseEvents: true // Let clicks pass through to map
+        })
+        line.bindTooltip(`${isNegative ? 'Priority' : 'Edge'}: ${edge.weight?.toFixed(2)}`, { sticky: true })
+        staticEdgeLinesLayer.addLayer(line)
+      }
+    })
+  }
+
+  updateNodeStyles()
 }
 
 const updateAlgoLayers = () => {
@@ -147,7 +199,6 @@ const updateAlgoLayers = () => {
   const nodeLookup = {}
   props.allNodes.forEach(n => { nodeLookup[n.id] = n })
 
-  // 1. Current relaxed edge
   if (relaxedEdgeLine) mapInstance.removeLayer(relaxedEdgeLine)
   if (props.currentRelaxedEdge) {
     const source = nodeLookup[props.currentRelaxedEdge.sourceId]
@@ -156,13 +207,11 @@ const updateAlgoLayers = () => {
       relaxedEdgeLine = L.polyline([[source.latitude, source.longitude], [target.latitude, target.longitude]], {
         color: '#fbbf24',
         weight: 8,
-        opacity: 1,
-        zIndex: 1000
+        opacity: 1
       }).addTo(mapInstance)
     }
   }
 
-  // 2. Algorithm Step Edges
   algoEdgeLinesLayer.clearLayers()
   if (props.allEdges && props.allEdges.length > 0) {
     props.allEdges.forEach(edge => {
@@ -174,13 +223,15 @@ const updateAlgoLayers = () => {
           color: isNegative ? '#ef4444' : '#64748b', 
           weight: isNegative ? 6 : 4,
           dashArray: isNegative ? '5, 10' : null,
-          opacity: 0.9
+          opacity: 0.9,
+          interactive: false // Prevent step edges from being clickable
         })
-        line.bindTooltip(`${isNegative ? 'Negative Edge' : 'Step'}: ${edge.weight?.toFixed(2)}`, { sticky: true })
         algoEdgeLinesLayer.addLayer(line)
       }
     })
   }
+  
+  updateNodeStyles()
 }
 
 const updatePathLayer = (shouldFit = false) => {
@@ -199,6 +250,7 @@ const updatePathLayer = (shouldFit = false) => {
       color: '#22c55e',
       opacity: 0.9,
       weight: 8,
+      interactive: false // Prevent final path from being clickable
     }).addTo(mapInstance)
 
     props.pathCoordinates.forEach((node, index) => {
@@ -208,15 +260,15 @@ const updatePathLayer = (shouldFit = false) => {
 
       const lat = node.lat || node.latitude
       const lng = node.lng || node.longitude
-      let fillColor = isStart ? '#22c55e' : '#15803d'
       
       const marker = L.circleMarker([lat, lng], {
         radius: 10,
-        fillColor: fillColor,
+        fillColor: isStart ? '#22c55e' : '#15803d',
         color: '#ffffff',
         weight: 3,
         opacity: 1,
-        fillOpacity: 1
+        fillOpacity: 1,
+        pane: 'markerPane'
       })
       markersLayer.addLayer(marker)
     })
@@ -227,8 +279,12 @@ const updatePathLayer = (shouldFit = false) => {
   }
 }
 
-// Targeted watchers for better performance
-watch(() => [props.allNodes, props.staticEdges, props.showGraphEdges, props.showNodeIds], () => {
+watch(() => [props.allNodes, props.showMapNodes], () => {
+  syncMarkers()
+  updateStaticLayers()
+}, { deep: true })
+
+watch(() => [props.staticEdges, props.showGraphEdges, props.showNodeIds], () => {
   updateStaticLayers()
 }, { deep: true })
 
@@ -237,7 +293,6 @@ watch(() => [props.allEdges, props.currentTraversedNode, props.currentRelaxedEdg
 }, { deep: true })
 
 watch(() => props.pathCoordinates, (newVal, oldVal) => {
-  // Only fit bounds if the path actually changed (e.g. new result)
   const changed = JSON.stringify(newVal) !== JSON.stringify(oldVal)
   updatePathLayer(changed)
 }, { deep: true })
