@@ -565,11 +565,13 @@ const handleDispatch = async () => {
   const destNode = allNodes.value.find(n => n.id === destinationId.value)
 
   const mission = {
-    patientName: patientName.value,
-    emergencyType: emergencyType.value,
+    patient: {
+      name: patientName.value,
+      emergencyType: emergencyType.value,
+      contactNumber: '' // Optional: could add an input for this
+    },
     ambulance: { id: selectedAmbulance.value },
     dispatcher: { id: user.value?.id || 1 },
-    status: 'DISPATCHED',
     startLat: sourceNode?.latitude,
     startLng: sourceNode?.longitude,
     endLat: destNode?.latitude,
@@ -586,7 +588,7 @@ const handleDispatch = async () => {
     })
 
     if (res.ok) {
-      systemLog.value = 'Mission dispatched successfully!'
+      systemLog.value = 'Mission dispatched! Waiting for driver confirmation.'
       resetForm()
       fetchAmbulances()
     } else {

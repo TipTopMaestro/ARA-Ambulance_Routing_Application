@@ -26,11 +26,9 @@ public class Mission {
     @JoinColumn(name = "ambulance_id", nullable = false)
     private Ambulance ambulance;
 
-    @Column(name = "patient_name")
-    private String patientName;
-
-    @Column(name = "emergency_type")
-    private String emergencyType;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "patient_id", nullable = false)
+    private Patient patient;
 
     @Column(name = "start_lat")
     private Double startLat;
@@ -65,7 +63,7 @@ public class Mission {
     private LocalDateTime arrivalTime;
 
     public enum MissionStatus {
-        PENDING, DISPATCHED, EN_ROUTE, TRANSPORT, COMPLETED, CANCELLED
+        PENDING_CONFIRMATION, EN_ROUTE, COMPLETED, CANCELLED
     }
 
     public Mission() {}
@@ -83,10 +81,10 @@ public class Mission {
     public Long getAmbulanceId() {
         return ambulance != null ? ambulance.getId() : null;
     }
-    public String getPatientName() { return patientName; }
-    public void setPatientName(String patientName) { this.patientName = patientName; }
-    public String getEmergencyType() { return emergencyType; }
-    public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
+
+    public Patient getPatient() { return patient; }
+    public void setPatient(Patient patient) { this.patient = patient; }
+
     public Double getStartLat() { return startLat; }
     public void setStartLat(Double startLat) { this.startLat = startLat; }
     public Double getStartLng() { return startLng; }

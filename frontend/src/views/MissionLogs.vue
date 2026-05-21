@@ -17,9 +17,9 @@
         <tbody>
           <tr v-for="log in logs" :key="log.id">
             <td>{{ formatDate(log.dispatchTime) }}</td>
-            <td>{{ log.patientName }}</td>
-            <td>{{ log.emergencyType }}</td>
-            <td>{{ log.status }}</td>
+            <td>{{ log.patient?.name || 'N/A' }}</td>
+            <td>{{ log.patient?.emergencyType || 'N/A' }}</td>
+            <td>{{ log.status.replace('_', ' ') }}</td>
             <td>{{ log.ambulanceId }}</td>
             <td>{{ log.estimatedTime?.toFixed(1) }}m</td>
           </tr>

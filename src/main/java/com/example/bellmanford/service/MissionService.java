@@ -17,14 +17,18 @@ public class MissionService {
     private final HospitalRepository hospitalRepository;
     private final UserRepository userRepository;
 
+    private final PatientRepository patientRepository;
+
     public MissionService(MissionRepository missionRepository, 
                           AmbulanceRepository ambulanceRepository,
                           HospitalRepository hospitalRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          PatientRepository patientRepository) {
         this.missionRepository = missionRepository;
         this.ambulanceRepository = ambulanceRepository;
         this.hospitalRepository = hospitalRepository;
         this.userRepository = userRepository;
+        this.patientRepository = patientRepository;
     }
 
     @Transactional
@@ -32,26 +36,33 @@ public class MissionService {
         Ambulance ambulance = ambulanceRepository.findById(missionDto.getAmbulance().getId())
             .orElseThrow(() -> new RuntimeException("Ambulance not found"));
 
+        if (ambulance.getDriver() == null) {
+            throw new RuntimeException("Selected ambulance has no assigned driver");
+        }
+
         User dispatcher = userRepository.findById(missionDto.getDispatcher().getId())
             .orElseThrow(() -> new RuntimeException("Dispatcher not found"));
 
+        // 1. Save Patient first
+        Patient patient = missionDto.getPatient();
+        if (patient.getId() == null) {
+            patient = patientRepository.save(patient);
+        }
+
+        // 2. Create Mission with PENDING_CONFIRMATION
         Mission mission = new Mission();
         mission.setDispatcher(dispatcher);
+        mission.setDriver(ambulance.getDriver()); // Auto-assign driver from ambulance
         mission.setAmbulance(ambulance);
-        mission.setPatientName(missionDto.getPatientName());
-        mission.setEmergencyType(missionDto.getEmergencyType());
+        mission.setPatient(patient);
         mission.setStartLat(missionDto.getStartLat());
         mission.setStartLng(missionDto.getStartLng());
         mission.setEndLat(missionDto.getEndLat());
         mission.setEndLng(missionDto.getEndLng());
         mission.setEstimatedTime(missionDto.getEstimatedTime());
         mission.setPathJson(missionDto.getPathJson());
-        mission.setStatus(Mission.MissionStatus.DISPATCHED);
+        mission.setStatus(Mission.MissionStatus.PENDING_CONFIRMATION);
         mission.setDispatchTime(LocalDateTime.now());
-
-        if (missionDto.getDriver() != null) {
-            userRepository.findById(missionDto.getDriver().getId()).ifPresent(mission::setDriver);
-        }
 
         ambulance.setStatus(Ambulance.AmbulanceStatus.RESERVED);
         ambulanceRepository.save(ambulance);
@@ -67,7 +78,7 @@ public class MissionService {
         return userRepository.findById(driverId)
             .flatMap(driver -> missionRepository.findByDriverAndStatusIn(
                 driver, 
-                List.of(Mission.MissionStatus.DISPATCHED, Mission.MissionStatus.EN_ROUTE, Mission.MissionStatus.TRANSPORT)
+                List.of(Mission.MissionStatus.PENDING_CONFIRMATION, Mission.MissionStatus.EN_ROUTE)
             ).stream().findFirst());
     }
 
@@ -84,10 +95,6 @@ public class MissionService {
         switch (newStatus) {
             case EN_ROUTE:
                 ambulance.setStatus(Ambulance.AmbulanceStatus.EN_ROUTE);
-                break;
-            case TRANSPORT:
-                mission.setTransportTime(LocalDateTime.now());
-                ambulance.setStatus(Ambulance.AmbulanceStatus.TRANSPORT);
                 break;
             case COMPLETED:
                 mission.setArrivalTime(LocalDateTime.now());

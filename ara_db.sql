@@ -17,17 +17,6 @@ CREATE TABLE `hospitals` (
 
 -- --------------------------------------------------------
 
--- Table structure for table `ambulances`
-CREATE TABLE `ambulances` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `hospital_id` bigint(20) NOT NULL,
-  `status` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `FK_ambulance_hospital` FOREIGN KEY (`hospital_id`) REFERENCES `hospitals` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
 -- Table structure for table `users`
 CREATE TABLE `users` (
   `user_id` bigint(20) NOT NULL AUTO_INCREMENT,
@@ -37,6 +26,20 @@ CREATE TABLE `users` (
   `active` bit(1) NOT NULL DEFAULT b'1',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `UK_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+-- Table structure for table `ambulances`
+CREATE TABLE `ambulances` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `hospital_id` bigint(20) NOT NULL,
+  `driver_id` bigint(20) DEFAULT NULL,
+  `status` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK_driver` (`driver_id`),
+  CONSTRAINT `FK_ambulance_hospital` FOREIGN KEY (`hospital_id`) REFERENCES `hospitals` (`id`),
+  CONSTRAINT `FK_ambulance_driver` FOREIGN KEY (`driver_id`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -56,10 +59,9 @@ CREATE TABLE `patients` (
 CREATE TABLE `missions` (
   `mission_id` bigint(20) NOT NULL AUTO_INCREMENT,
   `dispatcher_id` bigint(20) NOT NULL,
-  `driver_id` bigint(20) DEFAULT NULL,
+  `driver_id` bigint(20) NOT NULL,
   `ambulance_id` bigint(20) NOT NULL,
-  `patient_name` varchar(255) DEFAULT NULL,
-  `emergency_type` varchar(255) DEFAULT NULL,
+  `patient_id` bigint(20) NOT NULL,
   `start_lat` double DEFAULT NULL,
   `start_lng` double DEFAULT NULL,
   `end_lat` double DEFAULT NULL,
@@ -73,13 +75,22 @@ CREATE TABLE `missions` (
   PRIMARY KEY (`mission_id`),
   CONSTRAINT `FK_mission_dispatcher` FOREIGN KEY (`dispatcher_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `FK_mission_driver` FOREIGN KEY (`driver_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `FK_mission_ambulance` FOREIGN KEY (`ambulance_id`) REFERENCES `ambulances` (`id`)
+  CONSTRAINT `FK_mission_ambulance` FOREIGN KEY (`ambulance_id`) REFERENCES `ambulances` (`id`),
+  CONSTRAINT `FK_mission_patient` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Dumping initial data for `users`
+-- Dumping initial data
 INSERT INTO `users` (`username`, `password`, `role`, `active`) VALUES
 ('dispatcher1', 'password', 'DISPATCHER', b'1'),
 ('driver1', 'password', 'DRIVER', b'1'),
 ('driver2', 'password', 'DRIVER', b'1');
+
+INSERT INTO `hospitals` (`name`, `latitude`, `longitude`) VALUES
+('Panabo City District Hospital', 7.3081, 125.6841),
+('Rivera Medical Center Inc.', 7.3050, 125.6800);
+
+INSERT INTO `ambulances` (`hospital_id`, `driver_id`, `status`) VALUES
+(1, 2, 'AVAILABLE'),
+(2, 3, 'AVAILABLE');
 
 COMMIT;

@@ -1,14 +1,13 @@
 <template>
   <div class="driver-dashboard">
 
-    <!-- LEFT SIDE -->
+    <!-- LEFT SIDE: Mission List & Actions -->
     <div class="left-panel">
-
       <div class="mission-card">
         <div class="card-header">
           <div>
             <h2>Driver Dashboard</h2>
-            <p class="subheading">Assigned Missions</p>
+            <p class="subheading">Active Missions</p>
           </div>
         </div>
 
@@ -18,7 +17,7 @@
           </template>
 
           <template v-else-if="driverMissions.length === 0">
-            <div class="mission-empty">No active missions yet.</div>
+            <div class="mission-empty">No active missions assigned.</div>
           </template>
 
           <template v-else>
@@ -30,27 +29,64 @@
               @click="selectMission(mission)"
             >
               <div>
-                <div class="mission-name">{{ mission.patientName || 'Unknown Patient' }}</div>
-                <div class="mission-meta">{{ mission.emergencyType || 'Emergency' }}</div>
+                <div class="mission-name">{{ mission.patient?.name || 'Unknown Patient' }}</div>
+                <div class="mission-meta">{{ mission.patient?.emergencyType || 'Emergency' }}</div>
               </div>
-              <span class="mission-status">{{ mission.status }}</span>
+              <span class="mission-status">{{ mission.status.replace('_', ' ') }}</span>
             </button>
           </template>
         </div>
       </div>
+
+      <!-- Action Panel: Confirmation Steps -->
+      <div v-if="selectedMission" class="action-card">
+        <h3 class="panel-subtitle">Mission Actions</h3>
+        
+        <div v-if="selectedMission.status === 'PENDING_CONFIRMATION'" class="confirmation-flow">
+          <p class="instruction">New dispatch request received. Please confirm to start navigation.</p>
+          <button @click="updateStatus('EN_ROUTE')" class="btn-confirm" :disabled="actionLoading">
+            CONFIRM & ACCEPT
+          </button>
+        </div>
+
+        <div v-else-if="selectedMission.status === 'EN_ROUTE'" class="confirmation-flow">
+          <p class="instruction">You are currently on mission. Mark as completed once the patient has been handled.</p>
+          <button @click="confirmCompletion" class="btn-complete" :disabled="actionLoading">
+            MARK AS COMPLETED
+          </button>
+        </div>
+      </div>
+
+      <!-- Selected Mission Details -->
+      <div v-if="selectedMission" class="details-card">
+        <h3 class="panel-subtitle">Patient Details</h3>
+        <div class="detail-item">
+          <span class="detail-label">Name:</span>
+          <span class="detail-value">{{ selectedMission.patient?.name }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Contact:</span>
+          <span class="detail-value">{{ selectedMission.patient?.contactNumber || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Emergency:</span>
+          <span class="detail-value highlight">{{ selectedMission.patient?.emergencyType }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">ETA:</span>
+          <span class="detail-value">{{ selectedMission.estimatedTime?.toFixed(1) }} mins</span>
+        </div>
+      </div>
     </div>
 
-    <!-- RIGHT SIDE -->
+    <!-- RIGHT SIDE: Map View -->
     <div class="right-panel">
-
-      <!-- MAP -->
       <div class="map-wrapper">
         <Map
           :allNodes="allNodes"
           :pathCoordinates="routeCoordinates"
-          :selectedSource="selectedMission?.hospitalOsmNodeId"
-          :selectedDestination="destinationId"
-          :onNodeClick="() => {}"
+          :showMapNodes="false"
+          :showGraphEdges="false"
         />
       </div>
     </div>
@@ -68,6 +104,7 @@ const missions = ref([])
 const selectedMission = ref(null)
 const allNodes = ref([])
 const loading = ref(true)
+const actionLoading = ref(false)
 
 let pollInterval = null
 
@@ -75,8 +112,8 @@ const driverMissions = computed(() => {
   if (!user.value) return []
   return missions.value.filter(
     (mission) =>
-      mission.driver?.id === user.value.id &&
-      ['DISPATCHED', 'EN_ROUTE', 'TRANSPORT'].includes(mission.status)
+      mission.driver?.user_id === user.value.id &&
+      ['PENDING_CONFIRMATION', 'EN_ROUTE'].includes(mission.status)
   )
 })
 
@@ -85,18 +122,28 @@ const selectMission = (mission) => {
 }
 
 const fetchNodes = async () => {
-  const res = await fetch('http://localhost:8081/api/nodes')
-  if (res.ok) {
-    allNodes.value = await res.json()
-  }
+  try {
+    const res = await fetch('http://localhost:8081/api/nodes')
+    if (res.ok) allNodes.value = await res.json()
+  } catch (e) { console.error("Failed to fetch nodes", e) }
 }
 
 const fetchMissions = async () => {
   try {
     const res = await fetch('http://localhost:8081/api/missions')
     if (res.ok) {
-      missions.value = await res.json()
-      if (!selectedMission.value || !driverMissions.value.some((m) => m.id === selectedMission.value.id)) {
+      const data = await res.json()
+      missions.value = data
+      
+      // Keep selection if it still exists in active missions, otherwise auto-select first
+      if (selectedMission.value) {
+        const stillActive = driverMissions.value.find(m => m.id === selectedMission.value.id)
+        if (stillActive) {
+          selectedMission.value = stillActive
+        } else {
+          selectedMission.value = driverMissions.value[0] || null
+        }
+      } else {
         selectedMission.value = driverMissions.value[0] || null
       }
     }
@@ -107,10 +154,39 @@ const fetchMissions = async () => {
   }
 }
 
+const updateStatus = async (newStatus) => {
+  if (!selectedMission.value) return
+  
+  actionLoading.value = true
+  try {
+    const res = await fetch(`http://localhost:8081/api/missions/${selectedMission.value.id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    })
+    
+    if (res.ok) {
+      await fetchMissions()
+    } else {
+      alert("Failed to update status")
+    }
+  } catch (err) {
+    console.error("Error updating status", err)
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+const confirmCompletion = () => {
+  if (confirm("Are you sure you have completed this mission?")) {
+    updateStatus('COMPLETED')
+  }
+}
+
 onMounted(() => {
   fetchNodes()
   fetchMissions()
-  pollInterval = setInterval(fetchMissions, 10000)
+  pollInterval = setInterval(fetchMissions, 5000)
 })
 
 onUnmounted(() => {
@@ -118,25 +194,19 @@ onUnmounted(() => {
 })
 
 const routeCoordinates = computed(() => {
-  if (!selectedMission.value || !selectedMission.value.routeCoordinatesJson) {
+  if (!selectedMission.value || !selectedMission.value.pathJson) {
     return null
   }
 
   try {
-    return JSON.parse(selectedMission.value.routeCoordinatesJson)
+    // Backend returns it as a JSON string via @JdbcTypeCode(SqlTypes.JSON)
+    return typeof selectedMission.value.pathJson === 'string' 
+      ? JSON.parse(selectedMission.value.pathJson) 
+      : selectedMission.value.pathJson
   } catch (e) {
     console.error('Failed to parse route coordinates', e)
     return null
   }
-})
-
-const destinationId = computed(() => {
-  if (!selectedMission.value) return null
-  return allNodes.value.find(
-    (n) =>
-      n.latitude === selectedMission.value.patientLat &&
-      n.longitude === selectedMission.value.patientLng
-  )?.id
 })
 
 watch(driverMissions, (missionsList) => {
@@ -150,124 +220,150 @@ watch(driverMissions, (missionsList) => {
 .driver-dashboard {
   padding: 1rem;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 350px 1fr;
   gap: 1rem;
-  height: calc(100vh - 2rem);
-  background: #f5f5f5;
+  height: calc(100vh - 80px);
+  background: #f3f4f6;
 }
 
 .left-panel {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  width: 280px;
+  overflow-y: auto;
 }
 
-
-.mission-card {
+.mission-card, .action-card, .details-card {
   background: white;
-  border-radius: 16px;
-  border: 1px solid #e5e7eb;
-  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 1.25rem;
+}
+
+.panel-subtitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 0.5rem;
+}
+
+.mission-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.card-header > div {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.subheading {
-  margin: 0.25rem 0 0;
-  color: #6b7280;
-  font-size: 0.93rem;
-}
-
-
-.mission-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .mission-item {
   width: 100%;
   text-align: left;
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  border: 1px solid #d1d5db;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   background: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
-.mission-item:hover,
+.mission-item:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
 .mission-item.selected {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .mission-name {
-  font-weight: 600;
-  margin-bottom: 0.15rem;
-}
-
-.mission-meta {
-  color: #6b7280;
-  font-size: 0.95rem;
-}
-
-.mission-status {
-  font-size: 0.85rem;
-  color: #991b1b;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.map-wrapper {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  min-height: 420px;
-}
-
-.patient-info {
-  background: white;
-  border-radius: 16px;
-  padding: 1.25rem;
-  border: 1px solid #e5e7eb;
-}
-
-.patient-info p {
-  margin: 0.6rem 0;
-  line-height: 1.5;
-}
-
-.patient-info strong {
+  font-weight: 700;
   color: #111827;
 }
 
-.mission-empty {
+.mission-meta {
+  font-size: 0.85rem;
   color: #6b7280;
+}
+
+.mission-status {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.instruction {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.btn-confirm, .btn-complete {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 8px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-confirm {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-complete {
+  background-color: #10b981;
+  color: white;
+}
+
+.btn-confirm:hover, .btn-complete:hover {
+  opacity: 0.9;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.detail-label {
+  color: #6b7280;
+}
+
+.detail-value {
+  color: #111827;
+  font-weight: 600;
+}
+
+.highlight {
+  color: #ef4444;
+}
+
+.right-panel {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.map-wrapper {
+  height: 100%;
+}
+
+.mission-empty {
   text-align: center;
-  padding: 1rem;
+  color: #9ca3af;
+  padding: 2rem 0;
+  font-style: italic;
 }
 </style>

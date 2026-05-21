@@ -15,6 +15,10 @@ public class Ambulance {
     @JoinColumn(name = "hospital_id", nullable = false)
     private Hospital hospital;
 
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "driver_id")
+    private User driver;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AmbulanceStatus status;
@@ -56,6 +60,14 @@ public class Ambulance {
 
     public void setHospital(Hospital hospital) {
         this.hospital = hospital;
+    }
+
+    public User getDriver() {
+        return driver;
+    }
+
+    public void setDriver(User driver) {
+        this.driver = driver;
     }
 
     public AmbulanceStatus getStatus() {
