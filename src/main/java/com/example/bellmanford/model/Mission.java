@@ -1,6 +1,5 @@
 package com.example.bellmanford.model;
 
-import org.locationtech.jts.geom.Point;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import jakarta.persistence.*;
@@ -12,6 +11,7 @@ public class Mission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "mission_id")
+    @com.fasterxml.jackson.annotation.JsonProperty("id")
     private Long missionId;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -32,11 +32,20 @@ public class Mission {
     @Column(name = "emergency_type")
     private String emergencyType;
 
-    @Column(name = "start_location", columnDefinition = "POINT")
-    private Point startLocation;
+    @Column(name = "start_lat")
+    private Double startLat;
 
-    @Column(name = "end_location", columnDefinition = "POINT")
-    private Point endLocation;
+    @Column(name = "start_lng")
+    private Double startLng;
+
+    @Column(name = "end_lat")
+    private Double endLat;
+
+    @Column(name = "end_lng")
+    private Double endLng;
+
+    @Column(name = "estimated_time")
+    private Double estimatedTime;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "path_json", columnDefinition = "json")
@@ -69,14 +78,25 @@ public class Mission {
     public void setDriver(User driver) { this.driver = driver; }
     public Ambulance getAmbulance() { return ambulance; }
     public void setAmbulance(Ambulance ambulance) { this.ambulance = ambulance; }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("ambulanceId")
+    public Long getAmbulanceId() {
+        return ambulance != null ? ambulance.getId() : null;
+    }
     public String getPatientName() { return patientName; }
     public void setPatientName(String patientName) { this.patientName = patientName; }
     public String getEmergencyType() { return emergencyType; }
     public void setEmergencyType(String emergencyType) { this.emergencyType = emergencyType; }
-    public Point getStartLocation() { return startLocation; }
-    public void setStartLocation(Point startLocation) { this.startLocation = startLocation; }
-    public Point getEndLocation() { return endLocation; }
-    public void setEndLocation(Point endLocation) { this.endLocation = endLocation; }
+    public Double getStartLat() { return startLat; }
+    public void setStartLat(Double startLat) { this.startLat = startLat; }
+    public Double getStartLng() { return startLng; }
+    public void setStartLng(Double startLng) { this.startLng = startLng; }
+    public Double getEndLat() { return endLat; }
+    public void setEndLat(Double endLat) { this.endLat = endLat; }
+    public Double getEndLng() { return endLng; }
+    public void setEndLng(Double endLng) { this.endLng = endLng; }
+    public Double getEstimatedTime() { return estimatedTime; }
+    public void setEstimatedTime(Double estimatedTime) { this.estimatedTime = estimatedTime; }
     public String getPathJson() { return pathJson; }
     public void setPathJson(String pathJson) { this.pathJson = pathJson; }
     public MissionStatus getStatus() { return status; }

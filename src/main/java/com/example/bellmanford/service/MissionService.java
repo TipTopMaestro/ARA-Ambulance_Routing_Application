@@ -40,8 +40,11 @@ public class MissionService {
         mission.setAmbulance(ambulance);
         mission.setPatientName(missionDto.getPatientName());
         mission.setEmergencyType(missionDto.getEmergencyType());
-        mission.setStartLocation(missionDto.getStartLocation());
-        mission.setEndLocation(missionDto.getEndLocation());
+        mission.setStartLat(missionDto.getStartLat());
+        mission.setStartLng(missionDto.getStartLng());
+        mission.setEndLat(missionDto.getEndLat());
+        mission.setEndLng(missionDto.getEndLng());
+        mission.setEstimatedTime(missionDto.getEstimatedTime());
         mission.setPathJson(missionDto.getPathJson());
         mission.setStatus(Mission.MissionStatus.DISPATCHED);
         mission.setDispatchTime(LocalDateTime.now());

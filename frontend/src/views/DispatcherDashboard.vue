@@ -79,6 +79,16 @@
         GENERATE ROUTE
       </button>
 
+      <button 
+        v-if="routeData"
+        @click="handleDispatch" 
+        :disabled="!selectedAmbulance || loading"
+        class="btn-primary btn-large"
+        style="background-color: #10b981; margin-top: -0.5rem; margin-bottom: 1rem;"
+      >
+        DISPATCH MISSION
+      </button>
+
       <!-- ETA Section -->
       <div class="eta-section">
         <h3 class="eta-title">ETA</h3>
@@ -356,11 +366,8 @@ const closeDrawers = () => {
   isRightPanelOpen.value = false
 }
 
-// Mockup units (used until backend provides real data)
-const ambulances = ref([
-  { id: 'AMB01', status: 'AVAILABLE', hospitalId: 'RMCI', hospitalName: 'RMCI Medical Center', hospitalOsmNodeId: 'H1' },
-  { id: 'AMB02', status: 'BUSY', hospitalId: 'CGH', hospitalName: 'City General Hospital', hospitalOsmNodeId: 'H2' }
-])
+// Real-time ambulance data from backend
+const ambulances = ref([])
 
 const patientName = ref('')
 const emergencyType = ref('')
@@ -554,27 +561,40 @@ const visualizeAlgorithm = async (steps) => {
 const handleDispatch = async () => {
   if (!selectedAmbulance.value || !routeData.value) return
 
+  const sourceNode = allNodes.value.find(n => n.id === selectedHospital.value)
+  const destNode = allNodes.value.find(n => n.id === destinationId.value)
+
   const mission = {
     patientName: patientName.value,
     emergencyType: emergencyType.value,
     ambulance: { id: selectedAmbulance.value },
     dispatcher: { id: user.value?.id || 1 },
     status: 'DISPATCHED',
+    startLat: sourceNode?.latitude,
+    startLng: sourceNode?.longitude,
+    endLat: destNode?.latitude,
+    endLng: destNode?.longitude,
+    estimatedTime: routeData.value.estimatedTime,
     pathJson: JSON.stringify(routeData.value.coordinates)
   }
 
-  const res = await fetch('http://localhost:8081/api/missions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(mission),
-  })
+  try {
+    const res = await fetch('http://localhost:8081/api/missions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mission),
+    })
 
-  if (res.ok) {
-    systemLog.value = 'Mission dispatched successfully!'
-    resetForm()
-    fetchAmbulances()
-  } else {
-    systemLog.value = 'Mission dispatch failed'
+    if (res.ok) {
+      systemLog.value = 'Mission dispatched successfully!'
+      resetForm()
+      fetchAmbulances()
+    } else {
+      systemLog.value = 'Mission dispatch failed'
+    }
+  } catch (err) {
+    systemLog.value = 'Network error during dispatch'
+    console.error(err)
   }
 }
 

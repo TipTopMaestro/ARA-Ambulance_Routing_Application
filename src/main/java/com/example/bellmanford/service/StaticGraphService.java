@@ -206,7 +206,7 @@ public class StaticGraphService {
         addEdge("RE28", "RE29", 1);
 
         //BIDIRECTIONAL
-        addEdge("RE17", "RE28",2);
+        // addEdge("RE17", "RE28",2);
 
 
 
