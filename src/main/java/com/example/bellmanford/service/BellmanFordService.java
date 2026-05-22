@@ -51,10 +51,19 @@ public class BellmanFordService {
 
         for (int i = 0; i < vertexCount - 1; i++) {
             boolean relaxedAny = false;
+            
+            // Create a snapshot of distances at the start of this iteration
+            // This enforces strict "hop-by-hop" propagation (no chain reactions within a single loop)
+            Map<String, Double> distanceSnapshot = new HashMap<>(distance);
+            
             for (GraphEdge edge : edges) {
-                double sourceDistance = distance.getOrDefault(edge.getSource(), Double.POSITIVE_INFINITY);
+                // Read source distance from the snapshot, not the live map being updated
+                double sourceDistance = distanceSnapshot.getOrDefault(edge.getSource(), Double.POSITIVE_INFINITY);
+                
                 if (sourceDistance != Double.POSITIVE_INFINITY) {
                     double newDistance = sourceDistance + edge.getWeight();
+                    
+                    // Compare against the LIVE distance map to see if we found a better path than currently known
                     boolean shouldRelax = newDistance < distance.getOrDefault(edge.getTarget(), Double.POSITIVE_INFINITY);
                     
                     if (shouldRelax) {
@@ -85,6 +94,11 @@ public class BellmanFordService {
         }
 
         List<String> path = reconstructPath(predecessor, sourceId, targetId);
+        List<Double> pathDistances = new ArrayList<>();
+        for (String nodeId : path) {
+            pathDistances.add(distance.getOrDefault(nodeId, Double.POSITIVE_INFINITY));
+        }
+
         String message;
         if (negativeCycleDetected) {
             message = "Negative cycle detected; distances may not be stable.";
@@ -108,7 +122,7 @@ public class BellmanFordService {
         }
 
         double estimatedTime = path.isEmpty() ? Double.POSITIVE_INFINITY : distance.getOrDefault(targetId, Double.POSITIVE_INFINITY);
-        return new PathResponse(path, coordinates, estimatedTime, negativeCycleDetected, message, steps, relaxationSteps, vertexCount);
+        return new PathResponse(path, pathDistances, coordinates, estimatedTime, negativeCycleDetected, message, steps, relaxationSteps, vertexCount);
     }
 
     private List<String> reconstructPath(Map<String, String> predecessor, String sourceId, String targetId) {

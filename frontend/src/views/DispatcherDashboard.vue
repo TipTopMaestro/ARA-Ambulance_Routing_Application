@@ -278,6 +278,20 @@
 
       <!-- VIEW 2: Algorithm Visualization -->
       <div v-if="rightPanelView === 'algorithm'" class="tab-content algorithm-tab">
+        <!-- Final Path Summary (Moved to top and always visible) -->
+        <div v-if="routeData" class="final-path-summary">
+          <label class="summary-label">Final Shortest Path (with cumulative cost):</label>
+          <div class="path-sequence">
+            <template v-for="(nodeId, idx) in routeData.path" :key="idx">
+              <div class="path-node-wrapper">
+                <span class="path-node">{{ nodeId }}</span>
+                <span class="path-node-cost">({{ routeData.pathDistances?.[idx]?.toFixed(1) || '0.0' }})</span>
+              </div>
+              <i v-if="idx < routeData.path.length - 1" class="bi bi-arrow-right path-arrow"></i>
+            </template>
+          </div>
+        </div>
+
         <div class="algorithm-controls">
           <div class="playback-controls">
             <button @click="togglePlayback" class="control-btn" :title="playbackState === 'playing' ? 'Pause' : 'Play'">
@@ -304,17 +318,6 @@
         <!-- Progress Bar -->
         <div class="progress-bar-container" v-if="relaxationStepsList.length > 0">
           <div class="progress-bar-fill" :style="{ width: `${((currentStepIndex + 1) / relaxationStepsList.length) * 100}%` }"></div>
-        </div>
-
-        <!-- Final Path Summary -->
-        <div v-if="routeData && currentStepIndex >= relaxationStepsList.length - 1" class="final-path-summary">
-          <label class="summary-label">Final Shortest Path:</label>
-          <div class="path-sequence">
-            <template v-for="(nodeId, idx) in routeData.path" :key="idx">
-              <span class="path-node">{{ nodeId }}</span>
-              <i v-if="idx < routeData.path.length - 1" class="bi bi-arrow-right path-arrow"></i>
-            </template>
-          </div>
         </div>
         
         <div class="table-container-right" ref="tableContainer">
@@ -1217,6 +1220,17 @@ select.form-select {
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
   border: 1px solid #dcfce7;
+}
+
+.path-node-cost {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #16a34a;
+  background-color: #f0fdf4;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  margin-left: -0.2rem;
+  z-index: 1;
 }
 
 .path-arrow {
