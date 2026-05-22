@@ -182,83 +182,195 @@
           {{ systemLog }}
         </div>
       </div>
-      <!-- Fleet Status Card -->
-      <div class="fleet-status">
-        <h3 class="panel-subtitle">Fleet Status</h3>
+
+      <!-- Tab Navigation -->
+      <div class="panel-tabs">
+        <button class="tab-btn" :class="{ active: rightPanelView === 'status' }" @click="rightPanelView = 'status'">
+          <i class="bi bi-info-circle"></i> Status
+        </button>
+        <button class="tab-btn" :class="{ active: rightPanelView === 'algorithm' }" @click="rightPanelView = 'algorithm'">
+          <i class="bi bi-diagram-3"></i> Algorithm
+        </button>
+      </div>
+
+      <!-- VIEW 1: Fleet & System Status -->
+      <div v-if="rightPanelView === 'status'" class="tab-content">
+        <!-- Fleet Status Card -->
+        <div class="fleet-status">
+          <h3 class="panel-subtitle">Fleet Status</h3>
+          
+          <div class="table-wrapper">
+            <table class="fleet-table">
+              <thead>
+                <tr class="table-header">
+                  <th class="table-header-cell">Unit</th>
+                  <th class="table-header-cell">Status</th>
+                  <th class="table-header-cell">Hospital</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="amb in ambulances" :key="amb.id" class="table-row">
+                  <td class="table-cell">{{ amb.id }}</td>
+                  <td class="table-cell">
+                    <div class="status-indicator">
+                      <span 
+                        class="status-dot"
+                        :class="amb.status === 'AVAILABLE' ? 'status-available' : 'status-busy'"
+                      ></span>
+                      <span class="status-text">{{ amb.status }}</span>
+                    </div>
+                  </td>
+                  <td class="table-cell">{{ amb.hospitalName }}</td>
+                </tr>
+                <tr v-if="ambulances.length === 0" class="table-row">
+                  <td colspan="3" class="table-empty">No ambulances available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Map Layers Card -->
+        <div class="system-status" style="margin-bottom: 0;">
+          <h3 class="panel-subtitle">Map Layers</h3>
+          <div class="status-items">
+            <div class="status-item">
+              <span class="status-label">Show Map Nodes:</span>
+              <label class="switch">
+                <input type="checkbox" v-model="showMapNodes">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Show Graph Network:</span>
+              <label class="switch">
+                <input type="checkbox" v-model="showGraphEdges">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Show Node IDs:</span>
+              <label class="switch">
+                <input type="checkbox" v-model="showNodeIds">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status Card -->
+        <div class="system-status">
+          <h3 class="panel-subtitle">System status</h3>
+          
+          <div class="status-items">
+            <div class="status-item">
+              <span class="status-label">Ambulances Active:</span>
+              <strong class="status-number">{{ ambulances.filter(a => a.status !== 'AVAILABLE').length }}</strong>
+            </div>
+            
+            <div class="status-item">
+              <span class="status-label">Ambulances Available:</span>
+              <strong class="status-number status-available-count">{{ ambulances.filter(a => a.status === 'AVAILABLE').length }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: Algorithm Visualization -->
+      <div v-if="rightPanelView === 'algorithm'" class="tab-content algorithm-tab">
+        <div class="algorithm-controls">
+          <div class="playback-controls">
+            <button @click="togglePlayback" class="control-btn" :title="playbackState === 'playing' ? 'Pause' : 'Play'">
+              <i class="bi" :class="playbackState === 'playing' ? 'bi-pause-fill' : 'bi-play-fill'"></i>
+            </button>
+            <button @click="stopPlayback" class="control-btn" title="Stop">
+              <i class="bi bi-stop-fill"></i>
+            </button>
+            <button @click="restartPlayback" class="control-btn" title="Restart">
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+            <select v-model="playbackSpeed" class="speed-select-mini">
+              <option :value="1000">1s</option>
+              <option :value="500">0.5s</option>
+              <option :value="200">0.2s</option>
+              <option :value="50">0.05s</option>
+            </select>
+          </div>
+          <div class="step-progress-mini" v-if="relaxationStepsList.length > 0">
+            {{ currentStepIndex + 1 }} / {{ relaxationStepsList.length }}
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container" v-if="relaxationStepsList.length > 0">
+          <div class="progress-bar-fill" :style="{ width: `${((currentStepIndex + 1) / relaxationStepsList.length) * 100}%` }"></div>
+        </div>
+
+        <!-- Final Path Summary -->
+        <div v-if="routeData && currentStepIndex >= relaxationStepsList.length - 1" class="final-path-summary">
+          <label class="summary-label">Final Shortest Path:</label>
+          <div class="path-sequence">
+            <template v-for="(nodeId, idx) in routeData.path" :key="idx">
+              <span class="path-node">{{ nodeId }}</span>
+              <i v-if="idx < routeData.path.length - 1" class="bi bi-arrow-right path-arrow"></i>
+            </template>
+          </div>
+        </div>
         
-        <div class="table-wrapper">
-          <table class="fleet-table">
+        <div class="table-container-right" ref="tableContainer">
+          <table class="relaxation-table table-mini">
             <thead>
-              <tr class="table-header">
-                <th class="table-header-cell">Unit</th>
-                <th class="table-header-cell">Status</th>
-                <th class="table-header-cell">Hospital</th>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>S → T</th>
+                <th style="width: 60px;">Dist</th>
+                <th style="width: 40px; text-align: center;">R</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="amb in ambulances" :key="amb.id" class="table-row">
-                <td class="table-cell">{{ amb.id }}</td>
-                <td class="table-cell">
-                  <div class="status-indicator">
-                    <span 
-                      class="status-dot"
-                      :class="amb.status === 'AVAILABLE' ? 'status-available' : 'status-busy'"
-                    ></span>
-                    <span class="status-text">{{ amb.status }}</span>
+              <template v-for="(step, index) in relaxationStepsList" :key="index">
+                <!-- Iteration Header -->
+                <tr v-if="index === 0 || step.iteration !== relaxationStepsList[index - 1].iteration" 
+                    class="iteration-group-header">
+                  <td colspan="4">Iteration {{ step.iteration + 1 }}</td>
+                </tr>
+                
+                <!-- Relaxation Step Row -->
+                <tr :class="{ 
+                      'current-step': index === currentStepIndex, 
+                      'not-executed': index > currentStepIndex,
+                      'relaxed-row': step.relaxed && index <= currentStepIndex
+                    }">
+                  <td class="text-muted">{{ index + 1 }}</td>
+                  <td class="node-id-cell">{{ step.sourceId }}→{{ step.targetId }}</td>
+                  <td class="dist-cell" :class="{ 'text-relaxed': step.relaxed && index <= currentStepIndex }">
+                    {{ step.newDistance === 1.7976931348623157e308 ? '∞' : step.newDistance.toFixed(1) }}
+                  </td>
+                  <td style="text-align: center;">
+                    <i v-if="step.relaxed" class="bi bi-check-circle-fill text-success"></i>
+                    <i v-else class="bi bi-dot text-muted"></i>
+                  </td>
+                </tr>
+              </template>
+
+              <!-- Convergence Message -->
+              <tr v-if="relaxationStepsList.length > 0 && currentStepIndex >= relaxationStepsList.length - 1" class="convergence-row">
+                <td colspan="4" class="text-center">
+                  <div class="convergence-message">
+                    <i class="bi bi-info-circle-fill"></i>
+                    Algorithm converged at Iteration {{ relaxationStepsList[relaxationStepsList.length - 1].iteration + 1 }}.
+                    <span v-if="relaxationStepsList[relaxationStepsList.length - 1].iteration + 1 < (routeData?.totalVertices || 0)">
+                      Early break triggered (no more updates possible).
+                    </span>
                   </div>
                 </td>
-                <td class="table-cell">{{ amb.hospitalName }}</td>
               </tr>
-              <tr v-if="ambulances.length === 0" class="table-row">
-                <td colspan="3" class="table-empty">No ambulances available</td>
+
+              <tr v-if="relaxationStepsList.length === 0">
+                <td colspan="4" class="table-empty">Generate route to see steps</td>
               </tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- Map Layers Card -->
-      <div class="system-status" style="margin-bottom: 0;">
-        <h3 class="panel-subtitle">Map Layers</h3>
-        <div class="status-items">
-          <div class="status-item">
-            <span class="status-label">Show Map Nodes:</span>
-            <label class="switch">
-              <input type="checkbox" v-model="showMapNodes">
-              <span class="slider round"></span>
-            </label>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Show Graph Network:</span>
-            <label class="switch">
-              <input type="checkbox" v-model="showGraphEdges">
-              <span class="slider round"></span>
-            </label>
-          </div>
-          <div class="status-item">
-            <span class="status-label">Show Node IDs:</span>
-            <label class="switch">
-              <input type="checkbox" v-model="showNodeIds">
-              <span class="slider round"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Status Card -->
-      <div class="system-status">
-        <h3 class="panel-subtitle">System status</h3>
-        
-        <div class="status-items">
-          <div class="status-item">
-            <span class="status-label">Ambulances Active:</span>
-            <strong class="status-number">{{ ambulances.filter(a => a.status !== 'AVAILABLE').length }}</strong>
-          </div>
-          
-          <div class="status-item">
-            <span class="status-label">Ambulances Available:</span>
-            <strong class="status-number status-available-count">{{ ambulances.filter(a => a.status === 'AVAILABLE').length }}</strong>
-          </div>
         </div>
       </div>
     </div>
@@ -286,9 +398,20 @@ const isLeftPanelOpen = ref(true)
 const isRightPanelOpen = ref(true)
 const isInitialLoad = ref(true)
 
+// Right Panel View State
+const rightPanelView = ref('status') // 'status' or 'algorithm'
+
+// Algorithm Animation Control
+const playbackState = ref('stopped') // 'playing', 'paused', 'stopped'
+const playbackSpeed = ref(500) // ms delay (default to Slow)
+const currentStepIndex = ref(0)
+const relaxationStepsList = ref([])
+const tableContainer = ref(null)
+
 const loadPanelState = () => {
   const leftSaved = localStorage.getItem('ara_left_panel_open')
   const rightSaved = localStorage.getItem('ara_right_panel_open')
+  const viewSaved = localStorage.getItem('ara_right_panel_view')
   const graphSaved = localStorage.getItem('ara_show_graph_edges')
   const nodeIdsSaved = localStorage.getItem('ara_show_node_ids')
   const mapNodesSaved = localStorage.getItem('ara_show_map_nodes')
@@ -303,6 +426,8 @@ const loadPanelState = () => {
     isRightPanelOpen.value = rightSaved === null ? true : rightSaved === 'true'
   }
 
+  rightPanelView.value = viewSaved || 'status'
+
   showGraphEdges.value = graphSaved === null ? true : graphSaved === 'true'
   showNodeIds.value = nodeIdsSaved === null ? false : nodeIdsSaved === 'true'
   showMapNodes.value = mapNodesSaved === null ? true : mapNodesSaved === 'true'
@@ -316,7 +441,12 @@ const savePanelState = () => {
     localStorage.setItem('ara_left_panel_open', isLeftPanelOpen.value)
     localStorage.setItem('ara_right_panel_open', isRightPanelOpen.value)
   }
+  localStorage.setItem('ara_right_panel_view', rightPanelView.value)
 }
+
+watch(rightPanelView, () => {
+  savePanelState()
+})
 
 const saveMapLayerState = () => {
   localStorage.setItem('ara_show_graph_edges', showGraphEdges.value)
@@ -364,6 +494,88 @@ const toggleRightPanel = () => {
 const closeDrawers = () => {
   isLeftPanelOpen.value = false
   isRightPanelOpen.value = false
+}
+
+const visualizeAlgorithm = async (steps) => {
+  relaxationStepsList.value = steps.slice(0, 500) // Cap for performance
+  currentStepIndex.value = 0
+  visitedNodes.value = []
+  playbackState.value = 'playing'
+  
+  // Switch to algorithm view in right panel and ensure it's open
+  rightPanelView.value = 'algorithm'
+  isRightPanelOpen.value = true
+  
+  await runAnimation()
+}
+
+const togglePlayback = () => {
+  if (playbackState.value === 'playing') {
+    playbackState.value = 'paused'
+  } else {
+    playbackState.value = 'playing'
+    if (relaxationStepsList.value.length > 0) {
+      runAnimation()
+    }
+  }
+}
+
+const stopPlayback = () => {
+  playbackState.value = 'stopped'
+  currentStepIndex.value = 0
+  currentTraversedNode.value = null
+  currentRelaxedEdge.value = null
+  visitedNodes.value = []
+}
+
+const restartPlayback = () => {
+  stopPlayback()
+  // Brief delay to ensure state reset before restarting
+  setTimeout(() => {
+    togglePlayback()
+  }, 10)
+}
+
+// Helper to auto-scroll the table to the current step
+const scrollToCurrentStep = () => {
+  if (!tableContainer.value) return
+  const currentTR = tableContainer.value.querySelector('.current-step')
+  if (currentTR) {
+    currentTR.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+}
+
+const runAnimation = async () => {
+  const visitedSet = new Set(visitedNodes.value)
+  
+  while (playbackState.value === 'playing' && currentStepIndex.value < relaxationStepsList.value.length) {
+    const step = relaxationStepsList.value[currentStepIndex.value]
+    
+    currentTraversedNode.value = step.targetId
+    currentRelaxedEdge.value = { sourceId: step.sourceId, targetId: step.targetId }
+    
+    if (!visitedSet.has(step.targetId)) {
+      visitedSet.add(step.targetId)
+      // Only update visitedNodes occasionally or at key steps
+      if (currentStepIndex.value % 5 === 0 || currentStepIndex.value === relaxationStepsList.value.length - 1) {
+        visitedNodes.value = Array.from(visitedSet)
+      }
+    }
+
+    scrollToCurrentStep()
+    
+    await new Promise(resolve => setTimeout(resolve, playbackSpeed.value))
+    
+    if (playbackState.value === 'playing') {
+      currentStepIndex.value++
+    }
+  }
+  
+  if (currentStepIndex.value >= relaxationStepsList.value.length) {
+    playbackState.value = 'stopped'
+    currentTraversedNode.value = null
+    currentRelaxedEdge.value = null
+  }
 }
 
 // Real-time ambulance data from backend
@@ -490,11 +702,7 @@ const handleCalculateRoute = async () => {
     const data = await res.json()
     allEdges.value = data.steps
     
-    if (data.relaxationSteps && data.relaxationSteps.length > 0) {
-      await visualizeAlgorithm(data.relaxationSteps)
-    }
-
-    // --- NEW: OSM Road Snapping (CURVY & FLEXIBLE) ---
+    // --- OSM Road Snapping (CURVY & FLEXIBLE) ---
     if (data.coordinates && data.coordinates.length >= 2) {
       try {
         systemLog.value = 'Generating high-resolution road path...'
@@ -502,60 +710,31 @@ const handleCalculateRoute = async () => {
           .map(c => `${c.lng || c.longitude},${c.lat || c.latitude}`)
           .join(';')
         
-        // Use 'route' with overview=full to get all the curves and turns of the streets
         const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson&continue_straight=false`)
         const osrmData = await osrmRes.json()
         
         if (osrmData.code === 'Ok' && osrmData.routes && osrmData.routes.length > 0) {
-          // Extract the high-resolution geometry coordinates
-          const snappedCoords = osrmData.routes[0].geometry.coordinates.map(c => ({
+          data.coordinates = osrmData.routes[0].geometry.coordinates.map(c => ({
             lat: c[1],
             lng: c[0]
           }))
-          // Replace the sparse node coordinates with dense road coordinates
-          data.coordinates = snappedCoords
         }
       } catch (osrmErr) {
-        console.error('OSM Road Generation failed, falling back to straight edges:', osrmErr)
+        console.error('OSM Road Generation failed:', osrmErr)
       }
     }
-    // --------------------------------------------------
-
+    
     routeData.value = data
     systemLog.value = data.message
+
+    if (data.relaxationSteps && data.relaxationSteps.length > 0) {
+      visualizeAlgorithm(data.relaxationSteps) // Run in background
+    }
   } catch (err) {
     systemLog.value = 'Route calculation failed'
   } finally {
     loading.value = false
   }
-}
-
-const visualizeAlgorithm = async (steps) => {
-  visitedNodes.value = []
-  const visitedSet = new Set()
-
-  // Cap steps to prevent UI freeze during negative cycle detection
-  const visualizationSteps = steps.slice(0, 300) 
-  
-  for (let i = 0; i < visualizationSteps.length; i++) {
-    const step = visualizationSteps[i]
-    currentTraversedNode.value = step.targetId
-    currentRelaxedEdge.value = { sourceId: step.sourceId, targetId: step.targetId }
-    
-    if (!visitedSet.has(step.targetId)) {
-      visitedSet.add(step.targetId)
-      // Only update the reactive array every 10 steps to reduce map re-renders
-      if (i % 10 === 0 || i === visualizationSteps.length - 1) {
-        visitedNodes.value = Array.from(visitedSet)
-      }
-    }
-
-    // Small delay to allow UI to breathe
-    await new Promise(resolve => setTimeout(resolve, 5))
-  }
-  
-  currentTraversedNode.value = null
-  currentRelaxedEdge.value = null
 }
 
 const handleDispatch = async () => {
@@ -604,10 +783,8 @@ const resetForm = () => {
   patientName.value = ''
   emergencyType.value = ''
   selectedHospital.value = ''
-  selectedHospitalId.value = null
   selectedAmbulance.value = ''
   destinationId.value = ''
-  locationDescription.value = ''
   routeData.value = null
   visitedNodes.value = []
   systemLog.value = 'Form reset'
@@ -889,6 +1066,259 @@ select.form-select {
 .right-collapsed .right-toggle {
   right: 0;
 }
+
+/* Right Panel View Switching */
+.panel-tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  padding: 0.25rem;
+  border-radius: 8px;
+  margin: 0 1rem 1rem 1rem;
+  gap: 0.25rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: #374151;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.tab-btn.active {
+  background-color: #ffffff;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Algorithm Tab Specifics */
+.algorithm-tab {
+  padding: 0 1rem;
+}
+
+.algorithm-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.speed-select-mini {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.step-progress-mini {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #eff6ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.progress-bar-container {
+  height: 4px;
+  background-color: #e5e7eb;
+  width: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.2s ease-out;
+}
+
+/* Final Path Summary */
+.final-path-summary {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.summary-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.path-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.path-node {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #15803d;
+  background: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #dcfce7;
+}
+
+.path-arrow {
+  color: #86efac;
+  font-size: 0.75rem;
+}
+
+/* Convergence Row */
+.convergence-row {
+  background-color: #f8fafc !important;
+}
+
+.convergence-message {
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.convergence-message i {
+  color: #3b82f6;
+  margin-right: 0.4rem;
+}
+
+.table-container-right {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+}
+
+.table-mini {
+  font-size: 0.75rem !important;
+}
+
+.relaxation-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.relaxation-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f9fafb;
+  color: #4b5563;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  z-index: 10;
+}
+
+.relaxation-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.node-id-cell {
+  font-family: monospace;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dist-cell {
+  font-weight: 600;
+}
+
+.text-relaxed {
+  color: #2563eb;
+}
+
+.relaxation-table tr.current-step {
+  background-color: #eff6ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.relaxation-table tr.relaxed-row {
+  background-color: #f0fdf4;
+}
+
+.relaxation-table tr.not-executed {
+  opacity: 0.4;
+}
+
+.iteration-group-header {
+  background-color: #f3f4f6;
+  border-top: 1px solid #d1d5db;
+}
+
+.iteration-group-header td {
+  font-weight: 700;
+  color: #4b5563;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.text-success { color: #10b981; }
+.text-muted { color: #9ca3af; }
 
 /* Right Panel */
 .right-panel {

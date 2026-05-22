@@ -108,7 +108,7 @@ public class BellmanFordService {
         }
 
         double estimatedTime = path.isEmpty() ? Double.POSITIVE_INFINITY : distance.getOrDefault(targetId, Double.POSITIVE_INFINITY);
-        return new PathResponse(path, coordinates, estimatedTime, negativeCycleDetected, message, steps, relaxationSteps);
+        return new PathResponse(path, coordinates, estimatedTime, negativeCycleDetected, message, steps, relaxationSteps, vertexCount);
     }
 
     private List<String> reconstructPath(Map<String, String> predecessor, String sourceId, String targetId) {
