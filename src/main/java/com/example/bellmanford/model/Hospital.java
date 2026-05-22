@@ -12,27 +12,23 @@ public class Hospital {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private double latitude;
-
-    @Column(nullable = false)
-    private double longitude;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinColumn(name = "node_id", referencedColumnName = "id")
+    private RouteNode routeNode;
 
     public Hospital() {}
 
-    public Hospital(Long id, String name, double latitude, double longitude) {
+    public Hospital(Long id, String name, RouteNode routeNode) {
         this.id = id;
         this.name = name;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.routeNode = routeNode;
     }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public double getLatitude() { return latitude; }
-    public void setLatitude(double latitude) { this.latitude = latitude; }
-    public double getLongitude() { return longitude; }
-    public void setLongitude(double longitude) { this.longitude = longitude; }
+    
+    public RouteNode getRouteNode() { return routeNode; }
+    public void setRouteNode(RouteNode routeNode) { this.routeNode = routeNode; }
 }
