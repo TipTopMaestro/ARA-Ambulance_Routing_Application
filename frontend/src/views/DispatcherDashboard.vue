@@ -76,7 +76,12 @@
             :key="amb.id" 
             :value="amb.id"
             :disabled="amb.status !== 'AVAILABLE'"
-            :class="amb.status === 'AVAILABLE' ? 'option-available' : 'option-busy'"
+            :class="{
+              'option-available': amb.status === 'AVAILABLE',
+              'option-reserved': amb.status === 'RESERVED',
+              'option-enroute': amb.status === 'EN_ROUTE' || amb.status === 'TRANSPORT',
+              'option-busy': amb.status === 'MAINTENANCE'
+            }"
           >
             {{ amb.id }} - {{ amb.status }} {{ amb.status !== 'AVAILABLE' ? '(In Use)' : '' }}
           </option>
@@ -227,7 +232,12 @@
                     <div class="status-indicator">
                       <span 
                         class="status-dot"
-                        :class="amb.status === 'AVAILABLE' ? 'status-available' : 'status-busy'"
+                        :class="{
+                          'status-available': amb.status === 'AVAILABLE',
+                          'status-reserved': amb.status === 'RESERVED',
+                          'status-enroute': amb.status === 'EN_ROUTE' || amb.status === 'TRANSPORT',
+                          'status-busy': amb.status === 'MAINTENANCE'
+                        }"
                       ></span>
                       <span class="status-text">{{ amb.status }}</span>
                     </div>
@@ -607,7 +617,14 @@ const isDeployed = ref(false)
 const getSelectedAmbulanceStatusClass = computed(() => {
   if (!selectedAmbulance.value) return ''
   const amb = ambulances.value.find(a => a.id === selectedAmbulance.value)
-  return amb?.status === 'AVAILABLE' ? 'text-available' : 'text-busy'
+  if (!amb) return ''
+  switch (amb.status) {
+    case 'AVAILABLE': return 'text-available'
+    case 'RESERVED': return 'text-reserved'
+    case 'EN_ROUTE':
+    case 'TRANSPORT': return 'text-enroute'
+    default: return 'text-busy'
+  }
 })
 
 // computed selected node details for ETA location display
@@ -1011,8 +1028,13 @@ select.form-select {
 }
 
 .text-available { color: #10b981 !important; }
-.text-busy { color: #ef4444 !important; }
+.text-reserved { color: #ef4444 !important; }
+.text-enroute { color: #f59e0b !important; }
+.text-busy { color: #9ca3af !important; }
+
 .option-available { color: #10b981; }
+.option-reserved { color: #ef4444; }
+.option-enroute { color: #f59e0b; }
 .option-busy { color: #9ca3af; }
 
 /* Buttons */
@@ -1536,6 +1558,14 @@ select.form-select {
 
 .status-available {
   background-color: #10b981;
+}
+
+.status-reserved {
+  background-color: #ef4444;
+}
+
+.status-enroute {
+  background-color: #f59e0b;
 }
 
 .status-busy {

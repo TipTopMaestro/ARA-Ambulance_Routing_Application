@@ -108,11 +108,11 @@
                   </div>
                 </td>
                 <td class="outcome-cell">
-                  <div v-if="log.status === 'COMPLETED'" class="outcome-success">
+                  <div v-if="log.status === 'COMPLETED' || log.status === 'ARRIVED' || log.status === 'AVAILABLE'" class="outcome-success">
                     <span class="outcome-label">Arrived:</span>
                     <span class="outcome-time">{{ formatDate(log.arrivalTime) }}</span>
                   </div>
-                  <div v-else-if="log.status === 'CANCELLED'" class="outcome-cancelled">
+                  <div v-else-if="log.status === 'CANCELLED' || log.status === 'FAILED'" class="outcome-cancelled">
                     <span class="outcome-label">N/A</span>
                   </div>
                   <div v-else class="outcome-pending">
@@ -146,8 +146,8 @@ const statusFilter = ref('ALL')
 
 const stats = computed(() => {
   return {
-    completed: logs.value.filter(l => l.status === 'COMPLETED').length,
-    active: logs.value.filter(l => l.status === 'EN_ROUTE' || l.status === 'PENDING_CONFIRMATION').length,
+    completed: logs.value.filter(l => l.status === 'COMPLETED' || l.status === 'AVAILABLE').length,
+    active: logs.value.filter(l => l.status === 'EN_ROUTE' || l.status === 'TRANSPORT' || l.status === 'RESERVED').length,
     cancelled: logs.value.filter(l => l.status === 'CANCELLED').length
   }
 })
@@ -330,7 +330,7 @@ const getEmergencyClass = (type) => {
 }
 
 .stat-icon.completed { background: #dcfce7; color: #16a34a; }
-.stat-icon.active { background: #dbeafe; color: #2563eb; }
+.stat-icon.active { background: #fffbeb; color: #f59e0b; }
 .stat-icon.cancelled { background: #fee2e2; color: #dc2626; }
 .stat-icon.total { background: #f1f5f9; color: #475569; }
 
@@ -510,10 +510,10 @@ const getEmergencyClass = (type) => {
   background: currentColor;
 }
 
-.status-pill.pending_confirmation { background: #f1f5f9; color: #475569; }
-.status-pill.en_route { background: #f0fdf4; color: #16a34a; }
-.status-pill.completed { background: #eff6ff; color: #2563eb; }
-.status-pill.cancelled { background: #fef2f2; color: #dc2626; }
+.status-pill.reserved { background: #fef2f2; color: #ef4444; }
+.status-pill.en_route, .status-pill.transport { background: #fffbeb; color: #f59e0b; }
+.status-pill.completed, .status-pill.available, .status-pill.arrived { background: #f0fdf4; color: #10b981; }
+.status-pill.cancelled, .status-pill.failed { background: #f1f5f9; color: #94a3b8; }
 
 .unit-box {
   display: inline-flex;
