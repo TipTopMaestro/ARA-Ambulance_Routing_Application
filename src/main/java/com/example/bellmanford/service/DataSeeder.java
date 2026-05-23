@@ -1,15 +1,16 @@
 package com.example.bellmanford.service;
 
-import com.example.bellmanford.model.CustomLogicalEdge;
-import com.example.bellmanford.model.RouteNode;
-import com.example.bellmanford.repository.CustomLogicalEdgeRepository;
-import com.example.bellmanford.repository.RouteNodeRepository;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.example.bellmanford.model.CustomLogicalEdge;
+import com.example.bellmanford.model.RouteNode;
+import com.example.bellmanford.repository.CustomLogicalEdgeRepository;
+import com.example.bellmanford.repository.RouteNodeRepository;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -172,92 +173,115 @@ public class DataSeeder implements CommandLineRunner {
     private void seedEdges() {
         List<CustomLogicalEdge> edges = new ArrayList<>();
         
-        // Main Source from Hospital
-        edges.add(new CustomLogicalEdge("H1", "BN1", 1.0));
+        // --- MODERATE-SPEED BASE TRAVEL TIMES (IN MINUTES) ---
+        // Estimates based on ~30-60 km/h vehicle speed
         
-        // Connections
-        edges.add(new CustomLogicalEdge("BN19", "BN2", -1.0));
+        // Main Source from Hospital
+        edges.add(new CustomLogicalEdge("H1", "BN1", 0.8));
+        
+        // Connections (BN Cluster)
         edges.add(new CustomLogicalEdge("BN2", "BN3", 0.2));
-        edges.add(new CustomLogicalEdge("BN3", "BN4", 1.0));
-        edges.add(new CustomLogicalEdge("BN4", "BN5", 1.0));
+        edges.add(new CustomLogicalEdge("BN3", "BN4", 0.6));
+        edges.add(new CustomLogicalEdge("BN4", "BN5", 0.8));
         edges.add(new CustomLogicalEdge("BN5", "BN6", 1.0));
         edges.add(new CustomLogicalEdge("BN6", "BN7", 1.0));
-        edges.add(new CustomLogicalEdge("BN7", "BN8", 1.0));
+        edges.add(new CustomLogicalEdge("BN7", "BN8", 0.6));
         edges.add(new CustomLogicalEdge("BN8", "BN9", 0.2));
-        edges.add(new CustomLogicalEdge("BN15", "RE7", 1.0));
-        edges.add(new CustomLogicalEdge("BN15", "BN14", 1.0));
-        edges.add(new CustomLogicalEdge("BN14", "BN13", -1.0));
-        edges.add(new CustomLogicalEdge("BN13", "BN12", 1.0));
-        edges.add(new CustomLogicalEdge("BN12", "BN11", 1.0));
-        edges.add(new CustomLogicalEdge("BN11", "BN10", 1.0));
+        edges.add(new CustomLogicalEdge("BN15", "BN14", 0.4));
+        edges.add(new CustomLogicalEdge("BN14", "BN13", 0.4));
+        edges.add(new CustomLogicalEdge("BN13", "BN12", 0.8));
+        edges.add(new CustomLogicalEdge("BN12", "BN11", 0.8));
+        edges.add(new CustomLogicalEdge("BN11", "BN10", 0.8));
         edges.add(new CustomLogicalEdge("BN10", "BN20", 1.0));
         edges.add(new CustomLogicalEdge("BN20", "BN9", 0.6));
-        edges.add(new CustomLogicalEdge("BN16", "BN15", 0.6));
+        edges.add(new CustomLogicalEdge("BN16", "BN15", 0.4));
         edges.add(new CustomLogicalEdge("BN18", "RE3", 0.2));
-        edges.add(new CustomLogicalEdge("BN17", "RE6", 0.5));
+        edges.add(new CustomLogicalEdge("BN17", "RE6", 0.4));
         edges.add(new CustomLogicalEdge("BN19", "RE1", 0.2));
-        edges.add(new CustomLogicalEdge("BN16", "RE6", 2.0));
+        edges.add(new CustomLogicalEdge("BN16", "RE6", 1.2));
+
+        // Connections (RE Cluster)
         edges.add(new CustomLogicalEdge("RE1", "RE10", 0.2));
         edges.add(new CustomLogicalEdge("RE2", "RE3", 0.2));
-        edges.add(new CustomLogicalEdge("RE6", "RE5", 0.0));
+        edges.add(new CustomLogicalEdge("RE6", "RE5", 0.2));
         edges.add(new CustomLogicalEdge("RE5", "RE4", 0.2));
-        edges.add(new CustomLogicalEdge("RE3", "RE4", -0.1));
+        edges.add(new CustomLogicalEdge("RE3", "RE4", 0.2));
         edges.add(new CustomLogicalEdge("RE5", "RE7", 0.4));
-        edges.add(new CustomLogicalEdge("RE7", "RE8", 0.1));
-        edges.add(new CustomLogicalEdge("RE8", "RE9", 0.1));
-        edges.add(new CustomLogicalEdge("RE9", "RE11", 0.1));
-        edges.add(new CustomLogicalEdge("RE9", "RE23", 2.0));
-        edges.add(new CustomLogicalEdge("RE4", "RE23", 2.0));
-        edges.add(new CustomLogicalEdge("RE23", "RE10", 2.0));
+        edges.add(new CustomLogicalEdge("RE7", "RE8", 0.2));
+        edges.add(new CustomLogicalEdge("RE8", "RE9", 0.2));
+        edges.add(new CustomLogicalEdge("RE9", "RE11", 0.2));
+        edges.add(new CustomLogicalEdge("RE9", "RE23", 0.8));
+        edges.add(new CustomLogicalEdge("RE4", "RE23", 0.8));
+        edges.add(new CustomLogicalEdge("RE23", "RE10", 0.8));
         edges.add(new CustomLogicalEdge("RE23", "RE24", 0.4));
-        edges.add(new CustomLogicalEdge("RE11", "RE24", 1.0));
+        edges.add(new CustomLogicalEdge("RE11", "RE24", 0.6));
         edges.add(new CustomLogicalEdge("RE10", "RE12", 0.2));
         edges.add(new CustomLogicalEdge("RE12", "RE13", 0.2));
         edges.add(new CustomLogicalEdge("RE13", "RE14", 0.2));
-        edges.add(new CustomLogicalEdge("RE24", "RE12", 3.0));
-        edges.add(new CustomLogicalEdge("RE37", "RE38", 1.0));
-        edges.add(new CustomLogicalEdge("RE38", "RE15", 1.0));
-        edges.add(new CustomLogicalEdge("RE15", "RE16", 1.0));
-        edges.add(new CustomLogicalEdge("RE16", "RE18", 1.0));
-        edges.add(new CustomLogicalEdge("RE18", "RE20", 1.0));
-        edges.add(new CustomLogicalEdge("RE20", "RE22", 1.0));
-        edges.add(new CustomLogicalEdge("RE8", "RE49", 1.0));
-        edges.add(new CustomLogicalEdge("RE11", "RE59", 1.0));
-        edges.add(new CustomLogicalEdge("RE59", "RE60", 1.0));
-        edges.add(new CustomLogicalEdge("RE60", "RE38", 1.0));
-        edges.add(new CustomLogicalEdge("RE15", "RE27", 2.0));
-        edges.add(new CustomLogicalEdge("RE27", "RE13", 2.0));
-        edges.add(new CustomLogicalEdge("RE16", "RE48", 2.0));
-        edges.add(new CustomLogicalEdge("RE48", "RE14", 2.0));
-        edges.add(new CustomLogicalEdge("RE18", "RE28", 2.0));
-        edges.add(new CustomLogicalEdge("RE28", "RE17", 2.0));
-        edges.add(new CustomLogicalEdge("RE20", "RE43", 1.0));
-        edges.add(new CustomLogicalEdge("RE43", "RE29", 2.0));
-        edges.add(new CustomLogicalEdge("RE29", "RE19", 2.0));
-        edges.add(new CustomLogicalEdge("RE14", "RE17", 1.0));
-        edges.add(new CustomLogicalEdge("RE17", "RE19", 1.0));
-        edges.add(new CustomLogicalEdge("RE43", "RE44", 2.0));
-        edges.add(new CustomLogicalEdge("RE44", "RE45", 2.0));
-        edges.add(new CustomLogicalEdge("RE44", "RE41", 1.0));
-        edges.add(new CustomLogicalEdge("RE41", "RE42", 1.0));
-        edges.add(new CustomLogicalEdge("RE42", "RE39", 2.0));
-        edges.add(new CustomLogicalEdge("RE29", "RE46", 1.0));
-        edges.add(new CustomLogicalEdge("RE46", "RE47", 2.0));
-        edges.add(new CustomLogicalEdge("RE19", "RE21", 1.0));
-        edges.add(new CustomLogicalEdge("RE21", "RE39", 1.0));
-        edges.add(new CustomLogicalEdge("RE46", "RE42", 1.0));
-        edges.add(new CustomLogicalEdge("RE27", "RE48", 1.0));
-        edges.add(new CustomLogicalEdge("RE48", "RE28", 1.0));
-        edges.add(new CustomLogicalEdge("RE28", "RE29", 1.0));
-
-        // Negative Edge Shortcuts
-        edges.add(new CustomLogicalEdge("BN1", "BN16", -1.0));
-        edges.add(new CustomLogicalEdge("BN1", "BN17", -1.0));
-        edges.add(new CustomLogicalEdge("BN17", "BN18", -1.0));
-        edges.add(new CustomLogicalEdge("BN18", "BN19", -1.0));
-        edges.add(new CustomLogicalEdge("BN14", "RE36", -3.0));
-        edges.add(new CustomLogicalEdge("RE36", "RE37", 1.0));
-        edges.add(new CustomLogicalEdge("RE37", "BN13", 2.0));
+        edges.add(new CustomLogicalEdge("RE37", "RE38", 0.6));
+        edges.add(new CustomLogicalEdge("RE38", "RE15", 0.6));
+        edges.add(new CustomLogicalEdge("RE15", "RE16", 0.4));
+        edges.add(new CustomLogicalEdge("RE16", "RE18", 0.4));
+        edges.add(new CustomLogicalEdge("RE18", "RE20", 0.4));
+        edges.add(new CustomLogicalEdge("RE20", "RE22", 0.6));
+        edges.add(new CustomLogicalEdge("RE8", "RE49", 0.6));
+        edges.add(new CustomLogicalEdge("RE11", "RE59", 0.4));
+        edges.add(new CustomLogicalEdge("RE59", "RE60", 0.2));
+        edges.add(new CustomLogicalEdge("RE60", "RE38", 0.4));
+        edges.add(new CustomLogicalEdge("RE15", "RE27", 1.0));
+        edges.add(new CustomLogicalEdge("RE27", "RE13", 1.0));
+        edges.add(new CustomLogicalEdge("RE16", "RE48", 1.0));
+        edges.add(new CustomLogicalEdge("RE48", "RE14", 1.0));
+        edges.add(new CustomLogicalEdge("RE18", "RE28", 1.0));
+        edges.add(new CustomLogicalEdge("RE28", "RE17", 1.0));
+        edges.add(new CustomLogicalEdge("RE20", "RE43", 0.6));
+        edges.add(new CustomLogicalEdge("RE43", "RE29", 1.0));
+        edges.add(new CustomLogicalEdge("RE29", "RE19", 1.0));
+        edges.add(new CustomLogicalEdge("RE14", "RE17", 0.6));
+        edges.add(new CustomLogicalEdge("RE17", "RE19", 0.6));
+        edges.add(new CustomLogicalEdge("RE43", "RE44", 0.8));
+        edges.add(new CustomLogicalEdge("RE44", "RE45", 0.8));
+        edges.add(new CustomLogicalEdge("RE44", "RE41", 0.6));
+        edges.add(new CustomLogicalEdge("RE41", "RE42", 0.6));
+        edges.add(new CustomLogicalEdge("RE42", "RE39", 1.0));
+        edges.add(new CustomLogicalEdge("RE29", "RE46", 0.6));
+        edges.add(new CustomLogicalEdge("RE46", "RE47", 1.0));
+        edges.add(new CustomLogicalEdge("RE19", "RE21", 0.6));
+        edges.add(new CustomLogicalEdge("RE21", "RE39", 0.6));
+        edges.add(new CustomLogicalEdge("RE46", "RE42", 0.6));
+        edges.add(new CustomLogicalEdge("RE27", "RE48", 0.6));
+        edges.add(new CustomLogicalEdge("RE48", "RE28", 0.6));
+        edges.add(new CustomLogicalEdge("RE28", "RE29", 0.6));
+        edges.add(new CustomLogicalEdge("RE41", "RE40", 0.6));
+        edges.add(new CustomLogicalEdge("RE22", "RE40", 0.6));
+        edges.add(new CustomLogicalEdge("RE22", "RE50", 0.6));
+        edges.add(new CustomLogicalEdge("RE50", "RE54", 1.0));
+        edges.add(new CustomLogicalEdge("RE50", "RE53", 0.6));
+        edges.add(new CustomLogicalEdge("RE53", "RE51", 0.6));
+        edges.add(new CustomLogicalEdge("RE51", "RE52", 0.6));
+        edges.add(new CustomLogicalEdge("RE51", "RE57", 0.6));
+        edges.add(new CustomLogicalEdge("RE53", "RE55", 1.0));
+        edges.add(new CustomLogicalEdge("RE52", "RE58", 1.0));
+        edges.add(new CustomLogicalEdge("RE39", "RE30", 0.4));
+        edges.add(new CustomLogicalEdge("RE30", "RE31", 1.0));
+        edges.add(new CustomLogicalEdge("BN20", "RE35", 1.0));
+        edges.add(new CustomLogicalEdge("BN6", "RE35", 1.4));
+        edges.add(new CustomLogicalEdge("RE35", "RE34", 0.8));
+        edges.add(new CustomLogicalEdge("RE34", "RE33", 0.8));
+        edges.add(new CustomLogicalEdge("RE33", "RE32", 0.8));
+        
+        // --- BASE CONNECTIONS (NOW ALL POSITIVE) ---
+        edges.add(new CustomLogicalEdge("BN1", "BN16", 0.6));
+        edges.add(new CustomLogicalEdge("BN1", "BN17", -0.25));
+        edges.add(new CustomLogicalEdge("BN17", "BN18", -0.25));
+        edges.add(new CustomLogicalEdge("BN18", "BN19", -0.25));
+        edges.add(new CustomLogicalEdge("BN19", "BN2", -0.25));
+        edges.add(new CustomLogicalEdge("BN11", "RE35", -0.3));
+        edges.add(new CustomLogicalEdge("RE24", "RE12", -0.25));
+        edges.add(new CustomLogicalEdge("BN15", "RE7", -0.25));
+        edges.add(new CustomLogicalEdge("BN14", "RE36", 0.6));
+        edges.add(new CustomLogicalEdge("RE36", "RE37", 0.6));
+        edges.add(new CustomLogicalEdge("RE37", "BN13", 0.8));
 
         edgeRepo.saveAll(edges);
     }
