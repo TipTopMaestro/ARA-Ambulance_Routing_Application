@@ -5,7 +5,7 @@
     <div v-if="isMobile && (isLeftPanelOpen || isRightPanelOpen)" class="drawer-backdrop" @click="closeDrawers"></div>
 
     <!-- Left Panel: Emergency Details Form -->
-    <div class="left-panel" :class="{ 'panel-open': isLeftPanelOpen }">
+    <div class="left-panel" :class="{ 'panel-open': isLeftPanelOpen, 'is-deployed': isDeployed }">
       <div class="card-header">
         <div class="panel-header">
           <h2 class="panel-title">Emergency Details</h2>
@@ -19,17 +19,17 @@
       </div>
       <div class="form-group">
         <label class="form-label">Patient Name:</label>
-        <input type="text" v-model="patientName" placeholder="Enter patient name" class="form-input" />
+        <input type="text" v-model="patientName" :disabled="isDeployed" placeholder="Enter patient name" class="form-input" />
       </div>
       
       <div class="form-group">
         <label class="form-label">Emergency Type:</label>
-        <input type="text" v-model="emergencyType" placeholder="e.g. Cardiac Arrest, Trauma" class="form-input" />
+        <input type="text" v-model="emergencyType" :disabled="isDeployed" placeholder="e.g. Cardiac Arrest, Trauma" class="form-input" />
       </div>
 
       <div class="form-group">
         <label class="form-label">Source Hospital:</label>
-        <select v-model="selectedHospital" class="form-select">
+        <select v-model="selectedHospital" :disabled="isDeployed" class="form-select">
           <option value="">Select Hospital</option>
           <option v-for="n in allNodes.filter(node => node.id.startsWith('H'))" :key="n.id" :value="n.id">
             {{ n.name || n.id }}
@@ -43,6 +43,7 @@
         <div class="form-select-wrapper">
           <input
             v-model="destinationId"
+            :disabled="isDeployed"
             list="locationSuggestions"
             class="form-select select-like-input"
             placeholder="Select, click map, or type location"
@@ -63,17 +64,28 @@
 
       <div class="form-group form-group-large">
         <label class="form-label">Ambulance / Unit:</label>
-        <select v-model="selectedAmbulance" class="form-select">
+        <select 
+          v-model="selectedAmbulance" 
+          :disabled="isDeployed" 
+          class="form-select status-select" 
+          :class="getSelectedAmbulanceStatusClass"
+        >
           <option value="">Select Ambulance</option>
-          <option v-for="amb in ambulances" :key="amb.id" :value="amb.id">
-            {{ amb.id }} - {{ amb.status }}
+          <option 
+            v-for="amb in ambulances" 
+            :key="amb.id" 
+            :value="amb.id"
+            :disabled="amb.status !== 'AVAILABLE'"
+            :class="amb.status === 'AVAILABLE' ? 'option-available' : 'option-busy'"
+          >
+            {{ amb.id }} - {{ amb.status }} {{ amb.status !== 'AVAILABLE' ? '(In Use)' : '' }}
           </option>
         </select>
       </div>
 
       <button 
         @click="handleCalculateRoute" 
-        :disabled="!selectedHospital || !destinationId || loading"
+        :disabled="!patientName || !emergencyType || !selectedHospital || !destinationId || !selectedAmbulance || loading || isDeployed"
         class="btn-primary btn-large"
       >
         GENERATE ROUTE
@@ -82,7 +94,7 @@
       <button 
         v-if="routeData"
         @click="handleDispatch" 
-        :disabled="!selectedAmbulance || loading"
+        :disabled="!selectedAmbulance || loading || isDeployed"
         class="btn-primary btn-large"
         style="background-color: #10b981; margin-top: -0.5rem; margin-bottom: 1rem;"
       >
@@ -590,6 +602,14 @@ const selectedHospital = ref('') // Internal source, usually inferred from ambul
 const selectedAmbulance = ref('')
 const destinationId = ref('')
 
+const isDeployed = ref(false)
+
+const getSelectedAmbulanceStatusClass = computed(() => {
+  if (!selectedAmbulance.value) return ''
+  const amb = ambulances.value.find(a => a.id === selectedAmbulance.value)
+  return amb?.status === 'AVAILABLE' ? 'text-available' : 'text-busy'
+})
+
 // computed selected node details for ETA location display
 const selectedNode = computed(() => {
   if (!destinationId.value) return null
@@ -609,6 +629,7 @@ const systemLog = ref('Ready')
 // human-friendly current action status for the UI (shows what the user is about to do)
   const currentAction = computed(() => {
     if (loading.value) return 'Calculating route'
+    if (isDeployed.value) return 'Mission Deployed'
 
     // Primary UI flow states (only these three messages are used):
     // 1) Adding patient location — when destination not chosen
@@ -681,13 +702,14 @@ const formatETA = (time) => {
 }
 
 const handleNodeClick = (id) => {
+  if (isDeployed.value) return
   destinationId.value = id
   systemLog.value = `Destination set to: ${id}`
 }
 
 const handleCalculateRoute = async () => {
-  if (!selectedHospital.value || !destinationId.value) {
-    systemLog.value = 'Please select a source hospital and destination location.'
+  if (!patientName.value || !emergencyType.value || !selectedHospital.value || !destinationId.value || !selectedAmbulance.value) {
+    systemLog.value = 'Please fill in all fields before generating the route.'
     return
   }
 
@@ -771,7 +793,7 @@ const handleDispatch = async () => {
 
     if (res.ok) {
       systemLog.value = 'Mission dispatched! Waiting for driver confirmation.'
-      resetForm()
+      isDeployed.value = true
       fetchAmbulances()
     } else {
       systemLog.value = 'Mission dispatch failed'
@@ -790,6 +812,7 @@ const resetForm = () => {
   destinationId.value = ''
   routeData.value = null
   visitedNodes.value = []
+  isDeployed.value = false
   systemLog.value = 'Form reset'
 }
 </script>
@@ -888,45 +911,94 @@ const resetForm = () => {
 
 /* Form Elements */
 .form-group {
-  margin-bottom: 0.7rem;
+  margin-bottom: 0.85rem;
 }
 
 .form-group-large {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-label {
   display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: #4b5563;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color 0.2s ease;
 }
 
 .form-input,
 .form-select {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-family: inherit;
   box-sizing: border-box;
-  background-color: white;
-  transition: all 0.2s ease;
+  background-color: #ffffff;
+  color: #111827;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+  opacity: 0.8;
 }
 
 .form-input:hover,
-.form-select:hover {
-  border-color: #9ca3af;
-  background-color: #fafbfc;
+.form-select:hover:not(:disabled) {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .form-input:focus,
 .form-select:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  background-color: white;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  background-color: #f9fafb;
+  color: #6b7280;
+  border-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.8;
+  box-shadow: none;
+}
+
+/* Specific styling for the datalist input to match selects */
+.select-like-input {
+  cursor: text;
+}
+
+.is-deployed .form-label {
+  color: #9ca3af;
+}
+
+.is-deployed .form-input,
+.is-deployed .form-select {
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.form-select-wrapper {
+  position: relative;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #6b7280;
 }
 
 select.form-select {
@@ -937,6 +1009,11 @@ select.form-select {
   background-position: right 0.75rem center;
   padding-right: 2.5rem;
 }
+
+.text-available { color: #10b981 !important; }
+.text-busy { color: #ef4444 !important; }
+.option-available { color: #10b981; }
+.option-busy { color: #9ca3af; }
 
 /* Buttons */
 .btn-primary {
@@ -1642,4 +1719,3 @@ input:checked + .slider:before {
   }
 }
 </style>
-
