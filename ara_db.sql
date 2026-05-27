@@ -6,12 +6,34 @@ SET time_zone = "+00:00";
 
 -- --------------------------------------------------------
 
+-- Table structure for table `route_nodes`
+CREATE TABLE `route_nodes` (
+  `id` varchar(255) NOT NULL,
+  `latitude` double NOT NULL,
+  `longitude` double NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
 -- Table structure for table `hospitals`
 CREATE TABLE `hospitals` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
-  `latitude` double NOT NULL,
-  `longitude` double NOT NULL,
+  `node_id` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FK_hospital_node` FOREIGN KEY (`node_id`) REFERENCES `route_nodes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+-- Table structure for table `custom_logical_edges`
+CREATE TABLE `custom_logical_edges` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `source_id` varchar(255) NOT NULL,
+  `target_id` varchar(255) NOT NULL,
+  `weight` double NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -85,9 +107,13 @@ INSERT INTO `users` (`username`, `password`, `role`, `active`) VALUES
 ('driver1', 'password', 'DRIVER', b'1'),
 ('driver2', 'password', 'DRIVER', b'1');
 
-INSERT INTO `hospitals` (`name`, `latitude`, `longitude`) VALUES
-('Panabo City District Hospital', 7.3081, 125.6841),
-('Rivera Medical Center Inc.', 7.3050, 125.6800);
+INSERT INTO `route_nodes` (`id`, `latitude`, `longitude`, `name`) VALUES
+('H1', 7.3081, 125.6841, 'Panabo City District Hospital'),
+('H2', 7.3050, 125.6800, 'Rivera Medical Center Inc.');
+
+INSERT INTO `hospitals` (`name`, `node_id`) VALUES
+('Panabo City District Hospital', 'H1'),
+('Rivera Medical Center Inc.', 'H2');
 
 INSERT INTO `ambulances` (`hospital_id`, `driver_id`, `status`) VALUES
 (1, 2, 'AVAILABLE'),

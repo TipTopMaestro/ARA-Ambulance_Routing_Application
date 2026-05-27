@@ -232,6 +232,11 @@ const updateAlgoLayers = () => {
   }
   
   updateNodeStyles()
+  
+  // Ensure the final calculated path stays in front of the algorithm visualization edges
+  if (polylineLayer) {
+    polylineLayer.bringToFront()
+  }
 }
 
 const updatePathLayer = (shouldFit = false) => {
