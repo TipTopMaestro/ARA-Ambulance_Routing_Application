@@ -300,6 +300,11 @@
 
       <!-- VIEW 2: Algorithm Visualization -->
       <div v-if="rightPanelView === 'algorithm'" class="tab-content algorithm-tab">
+
+        <div class="algorithm-header">
+          <h3 class="panel-subtitle">Bellman-Ford Algorithm</h3>
+        </div>
+
         <!-- Final Path Summary (Moved to top and always visible) -->
         <div v-if="routeData" class="final-path-summary">
           <label class="summary-label">Final Shortest Path (with cumulative cost):</label>
