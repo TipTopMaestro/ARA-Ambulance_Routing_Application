@@ -277,7 +277,7 @@ public class DataSeeder implements CommandLineRunner {
         edges.add(new CustomLogicalEdge("BN18", "BN19", -0.25));
         edges.add(new CustomLogicalEdge("BN19", "BN2", -0.25));
         edges.add(new CustomLogicalEdge("BN11", "RE35", -0.3));
-        edges.add(new CustomLogicalEdge("RE24", "RE12", -0.25));
+        edges.add(new CustomLogicalEdge("RE24", "RE12", -1.25));
         edges.add(new CustomLogicalEdge("BN15", "RE7", -0.25));
         edges.add(new CustomLogicalEdge("BN14", "RE36", 0.6));
         edges.add(new CustomLogicalEdge("RE36", "RE37", 0.6));

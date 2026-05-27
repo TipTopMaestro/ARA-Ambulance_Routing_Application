@@ -643,7 +643,7 @@ const routeData = ref(null)
 const loading = ref(false)
 const systemLog = ref('Ready')
 
-// human-friendly current action status for the UI (shows what the user is about to do)
+
   const currentAction = computed(() => {
     if (loading.value) return 'Calculating route'
     if (isDeployed.value) return 'Mission Deployed'
