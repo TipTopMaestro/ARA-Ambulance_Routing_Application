@@ -16,17 +16,25 @@ import com.example.bellmanford.model.PathResponse;
 import com.example.bellmanford.model.RelaxationStep;
 import com.example.bellmanford.model.RouteStep;
 
+
+/**
+ * Implements the Bellman-Ford algorithm to find the shortest path between a source 
+ * and target node. It calculates minimum distances, detects negative weight cycles, 
+ * and reconstructs the step-by-step route and geographical coordinates.
+ */
 @Service
 public class BellmanFordService {
 
+    
     private final StaticGraphService graphService;
 
     public BellmanFordService(StaticGraphService graphService) {
         this.graphService = graphService;
+        
     }
 
     public PathResponse calculateShortestPath(String sourceId, String targetId) {
-        List<GraphEdge> edges = graphService.getEdges();
+        List<GraphEdge> edges = graphService.getEdges();//Retrieves edges from GraphService
         Map<String, GraphNode> nodes = graphService.getNodes();
 
         Set<String> vertices = new HashSet<>();
@@ -53,7 +61,7 @@ public class BellmanFordService {
             boolean relaxedAny = false;
             
             // Create a snapshot of distances at the start of this iteration
-            // This enforces strict "hop-by-hop" propagation (no chain reactions within a single loop)
+            // This enforces strict "hop-by-hop" (no chain reactions within a single loop)
             Map<String, Double> distanceSnapshot = new HashMap<>(distance);
             
             for (GraphEdge edge : edges) {
@@ -66,20 +74,20 @@ public class BellmanFordService {
                     // Compare against the LIVE distance map to see if we found a better path than currently known
                     boolean shouldRelax = newDistance < distance.getOrDefault(edge.getTarget(), Double.POSITIVE_INFINITY);
                     
-                    if (shouldRelax) {
+                    if (shouldRelax) {//tells the algorithm that the path improved
                         distance.put(edge.getTarget(), newDistance);
-                        predecessor.put(edge.getTarget(), edge.getSource());
+                        predecessor.put(edge.getTarget(), edge.getSource()); //saves the previous node in the path
                         relaxedAny = true;
                     }
                     
-                    if (shouldRelax && relaxationSteps.size() < 5000) {
+                    if (shouldRelax && relaxationSteps.size() < 5000) {//limits relaxation steps to 5000 (for DEMO purposes)
                         relaxationSteps.add(new RelaxationStep(
                             i, edge.getSource(), edge.getTarget(), edge.getWeight(), newDistance, shouldRelax, null
                         ));
                     }
                 }
             }
-            if (!relaxedAny) {
+            if (!relaxedAny) {  // Exits early if no relaxation occurred in this iteration
                 break;
             }
         }

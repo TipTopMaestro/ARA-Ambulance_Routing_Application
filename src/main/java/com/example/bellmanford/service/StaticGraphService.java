@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import com.example.bellmanford.model.CustomLogicalEdge;
@@ -16,8 +15,10 @@ import com.example.bellmanford.repository.CustomLogicalEdgeRepository;
 import com.example.bellmanford.repository.HospitalRepository;
 import com.example.bellmanford.repository.RouteNodeRepository;
 
+import jakarta.annotation.PostConstruct;
+
 /**
- * 100% Database-driven Graph Provider.
+ * Database-driven Graph Provider.
  * All nodes and edges are fetched from the database.
  */
 @Service
@@ -45,13 +46,12 @@ public class StaticGraphService {
 
     /**
      * Loads the graph from the database. 
-     * Can be called manually to update the routing engine without a restart.
      */
     public void refreshGraph() {
         nodes.clear();
         edges.clear();
 
-        // 1. Load Hospitals (linked to route_nodes via 1-1)
+        // 1. Load Hospitals
         List<Hospital> hospitals = hospitalRepository.findAll();
         for (Hospital h : hospitals) {
             if (h.getRouteNode() != null) {

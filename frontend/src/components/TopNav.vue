@@ -3,10 +3,10 @@
     <div class="nav-container">
       <!-- Brand Section (Left) -->
       <router-link to="/" class="nav-brand">
-        <div><img src="/src/assets/logo.svg" alt="ARA Logo" class="logo"></div>
+        <div><img src="/src/assets/ara_logo.svg" alt="ARA Logo" class="logo"></div>
         <div class="Logo-title">ARA</div>
         <div class="brand-divider"></div>
-        <div class="brand-subtitle">Ambulance Routing Application</div>
+        <div class="brand-subtitle">Ambulance Routing Application <br> using Bellman-Ford algorithm</div>
       </router-link>
 
       <!-- Navigation Links (Center) -->

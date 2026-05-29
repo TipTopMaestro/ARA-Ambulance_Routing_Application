@@ -300,6 +300,11 @@
 
       <!-- VIEW 2: Algorithm Visualization -->
       <div v-if="rightPanelView === 'algorithm'" class="tab-content algorithm-tab">
+
+        <div class="algorithm-header">
+          <h3 class="panel-subtitle">Bellman-Ford Algorithm</h3>
+        </div>
+
         <!-- Final Path Summary (Moved to top and always visible) -->
         <div v-if="routeData" class="final-path-summary">
           <label class="summary-label">Final Shortest Path (with cumulative cost):</label>
@@ -643,7 +648,7 @@ const routeData = ref(null)
 const loading = ref(false)
 const systemLog = ref('Ready')
 
-// human-friendly current action status for the UI (shows what the user is about to do)
+
   const currentAction = computed(() => {
     if (loading.value) return 'Calculating route'
     if (isDeployed.value) return 'Mission Deployed'

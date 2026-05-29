@@ -64,10 +64,10 @@
           <span class="detail-label">Name:</span>
           <span class="detail-value">{{ selectedMission.patient?.name }}</span>
         </div>
-        <div class="detail-item">
+        <!-- <div class="detail-item">
           <span class="detail-label">Contact:</span>
           <span class="detail-value">{{ selectedMission.patient?.contactNumber || 'N/A' }}</span>
-        </div>
+        </div> -->
         <div class="detail-item">
           <span class="detail-label">Emergency:</span>
           <span class="detail-value highlight">{{ selectedMission.patient?.emergencyType }}</span>
